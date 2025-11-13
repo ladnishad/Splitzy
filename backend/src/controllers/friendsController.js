@@ -131,7 +131,7 @@ const searchUsers = async (req, res) => {
       email: { $regex: email, $options: 'i' },
       _id: { $ne: req.user.id } // Exclude current user
     })
-    .select('name email')
+    .select('name email preferences')
     .limit(10);
 
     res.status(200).json({
