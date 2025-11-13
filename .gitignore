@@ -34,6 +34,7 @@ Thumbs.db
 *~
 
 # Xcode
+ios-app-xcode/
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
