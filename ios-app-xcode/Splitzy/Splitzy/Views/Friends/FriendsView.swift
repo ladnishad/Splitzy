@@ -88,16 +88,16 @@ struct FriendRowView: View {
 
                 // Preferences badges
                 HStack(spacing: 6) {
-                    if let prefs = friend.preferences {
-                        if !prefs.drinksAlcohol {
-                            PreferenceBadge(icon: "wineglass.fill", text: "No alcohol", color: .orange)
-                        }
+                    let prefs = friend.preferences
 
-                        if !prefs.eatsMeat {
-                            PreferenceBadge(icon: "leaf.fill", text: "Vegetarian", color: .green)
-                        } else if !prefs.meatTypes.isEmpty {
-                            PreferenceBadge(icon: "fork.knife", text: "\(prefs.meatTypes.count) meats", color: .brown)
-                        }
+                    if !prefs.drinksAlcohol {
+                        PreferenceBadge(icon: "wineglass.fill", text: "No alcohol", color: .orange)
+                    }
+
+                    if !prefs.eatsMeat {
+                        PreferenceBadge(icon: "leaf.fill", text: "Vegetarian", color: .green)
+                    } else if !prefs.meatTypes.isEmpty {
+                        PreferenceBadge(icon: "fork.knife", text: "\(prefs.meatTypes.count) meats", color: .brown)
                     }
                 }
             }
