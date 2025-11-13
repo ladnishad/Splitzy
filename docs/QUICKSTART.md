@@ -25,16 +25,19 @@ Server runs on `http://localhost:3000`
 
 ### iOS App Setup
 
-1. **Open Xcode** and create new iOS App project named "Splitzy"
-
-2. **Copy Swift files** from `ios-app/` directory to your Xcode project
-
-3. **Update API URL** in `Services/APIService.swift`:
-```swift
-private let baseURL = "http://localhost:3000/api"
+1. **Open the Xcode project**:
+```bash
+open ios-app-xcode/Splitzy/Splitzy.xcodeproj
 ```
 
-4. **Run** the app on simulator or device
+2. **Update API URL** (if needed) in `Services/APIService.swift`:
+```swift
+private let baseURL = "http://localhost:3000/api"  // Already set for simulator
+```
+
+3. **Select a simulator** (e.g., iPhone 15 Pro) from the top bar
+
+4. **Press Cmd + R** to build and run
 
 ## 📱 Testing the App
 

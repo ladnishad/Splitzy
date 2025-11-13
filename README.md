@@ -24,15 +24,13 @@ Splitzy/
 │   │   └── config/       # Database & JWT config
 │   └── uploads/          # Uploaded bill images
 │
-├── ios-app/              # SwiftUI iOS application
-│   ├── Models/           # Data models
-│   ├── Services/         # API service & ViewModels
-│   └── Views/            # SwiftUI views
-│       ├── Auth/         # Login & Signup
-│       ├── Home/         # Bills list
-│       ├── Bills/        # Bill details & upload
-│       ├── Friends/      # Friends management
-│       └── Profile/      # User profile
+├── ios-app-xcode/        # Xcode project for iOS
+│   └── Splitzy/
+│       ├── Splitzy.xcodeproj  # Xcode project file
+│       └── Splitzy/           # SwiftUI source code
+│           ├── Models/        # Data models
+│           ├── Services/      # API service & ViewModels
+│           └── Views/         # SwiftUI views
 │
 └── docs/                 # Documentation
 ```
@@ -119,21 +117,18 @@ The API will be available at `http://localhost:3000`
 
 ### iOS App Setup
 
-1. Open Xcode
+1. Open the Xcode project:
+```bash
+open ios-app-xcode/Splitzy/Splitzy.xcodeproj
+```
 
-2. Create a new iOS App project:
-   - Name: Splitzy
-   - Interface: SwiftUI
-   - Language: Swift
-   - Minimum iOS: 16.0
-
-3. Copy all Swift files from `ios-app/` directory into your Xcode project
-
-4. Update API base URL in `APIService.swift`:
-   - For Simulator: `http://localhost:3000/api`
+2. Update API base URL in `Services/APIService.swift`:
+   - For Simulator: `http://localhost:3000/api` (default)
    - For Device: `http://YOUR_COMPUTER_IP:3000/api`
 
-5. Build and run the project
+3. Select a simulator (e.g., iPhone 15 Pro)
+
+4. Press **Cmd + R** to build and run
 
 ## 📱 App Features
 
