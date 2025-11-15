@@ -159,12 +159,14 @@ struct ManualEntryView: View {
         do {
             let participantIds = Array(selectedParticipants)
             let billItems = items.map { item in
-                BillItem(id: UUID().uuidString, name: item.name, quantity: item.quantity, cost: item.price)
+                BillItem(id: nil, name: item.name, quantity: item.quantity, cost: item.price)
             }
 
-            // TODO: Call API to create manual bill
-            // For now, just simulate success
-            try await Task.sleep(nanoseconds: 1_000_000_000)
+            _ = try await APIService.shared.createManualBill(
+                restaurantName: restaurantName,
+                participants: participantIds,
+                items: billItems
+            )
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

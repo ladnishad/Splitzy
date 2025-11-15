@@ -1,8 +1,60 @@
 const Bill = require('../models/Bill');
 const path = require('path');
 
+// @desc    Create a manual bill
+// @route   POST /api/bills/manual
+// @access  Private
+const createManualBill = async (req, res) => {
+  try {
+    const { participants, restaurantName, items } = req.body;
+
+    if (!restaurantName || !participants || !items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Restaurant name, participants, and items are required'
+      });
+    }
+
+    // Parse participants if needed
+    let participantIds = Array.isArray(participants) ? participants : JSON.parse(participants);
+
+    // Ensure the creator is in participants
+    if (!participantIds.includes(req.user.id)) {
+      participantIds.push(req.user.id);
+    }
+
+    const bill = await Bill.create({
+      uploadedBy: req.user.id,
+      imageUrl: '/placeholder.png', // No image for manual bills
+      participants: participantIds,
+      items: items,
+      restaurant: {
+        name: restaurantName,
+        type: 'restaurant'
+      },
+      status: 'processed' // Manual bills are already processed
+    });
+
+    // Calculate total
+    bill.calculateTotal();
+    await bill.save();
+
+    await bill.populate('uploadedBy participants', 'name email');
+
+    res.status(201).json({
+      success: true,
+      data: bill
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // @desc    Upload a new bill
-// @route   POST /api/bills
+// @route   POST /api/bills/upload
 // @access  Private
 const uploadBill = async (req, res) => {
   try {
@@ -196,6 +248,7 @@ const deleteBill = async (req, res) => {
 };
 
 module.exports = {
+  createManualBill,
   uploadBill,
   getBills,
   getBill,

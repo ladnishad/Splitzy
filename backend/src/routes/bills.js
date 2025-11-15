@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { uploadBill, getBills, getBill, updateBillItems, deleteBill } = require('../controllers/billsController');
+const { createManualBill, uploadBill, getBills, getBill, updateBillItems, deleteBill } = require('../controllers/billsController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -36,7 +36,8 @@ const upload = multer({
 
 router.use(protect); // All routes are protected
 
-router.post('/', upload.single('image'), uploadBill);
+router.post('/manual', createManualBill);
+router.post('/upload', upload.single('image'), uploadBill);
 router.get('/', getBills);
 router.get('/:id', getBill);
 router.put('/:id/items', updateBillItems);

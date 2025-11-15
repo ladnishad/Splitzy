@@ -169,8 +169,27 @@ class APIService: ObservableObject {
         return try await performRequest(request)
     }
 
+    func createManualBill(restaurantName: String, participants: [String], items: [BillItem]) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/manual", method: "POST") else {
+            throw APIError.invalidURL
+        }
+
+        let itemsArray = items.map { item in
+            ["name": item.name, "quantity": item.quantity, "cost": item.cost] as [String : Any]
+        }
+
+        let body: [String: Any] = [
+            "restaurantName": restaurantName,
+            "participants": participants,
+            "items": itemsArray
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return try await performRequest(request)
+    }
+
     func uploadBill(image: Data, participants: [String], restaurantName: String, restaurantType: String) async throws -> BillResponse {
-        guard let url = URL(string: "\(baseURL)/bills") else {
+        guard let url = URL(string: "\(baseURL)/bills/upload") else {
             throw APIError.invalidURL
         }
 
