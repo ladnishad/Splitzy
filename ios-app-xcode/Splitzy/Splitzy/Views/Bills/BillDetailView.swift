@@ -41,17 +41,17 @@ struct BillDetailView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    // Show appropriate action button
-                    if isUploader {
-                        if bill.assignmentMode == .uploaderAssigns && bill.status != .finalized {
+                    // Show appropriate action button based on mode
+                    if bill.status != .finalized {
+                        if bill.assignmentMode == .uploaderAssigns && isUploader {
+                            // Only uploader can assign in uploader_assigns mode
                             Button {
                                 showAssignmentView = true
                             } label: {
                                 Label("Assign Items", systemImage: "person.badge.plus")
                             }
-                        }
-                    } else {
-                        if bill.assignmentMode == .selfSelect && bill.status != .finalized {
+                        } else if bill.assignmentMode == .selfSelect {
+                            // Everyone including uploader can claim in self_select mode
                             Button {
                                 showClaimView = true
                             } label: {
