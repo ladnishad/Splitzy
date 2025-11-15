@@ -520,7 +520,7 @@ struct AssignItemSheet: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(selectedParticipant?.id == participant.id ? .blue.gradient : .gray.opacity(0.2))
+                        .fill(selectedParticipant?.id == participant.id ? Color.blue : Color.gray.opacity(0.2))
                         .frame(width: 44, height: 44)
 
                     Text(String(participant.name.prefix(1)))
