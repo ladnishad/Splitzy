@@ -46,14 +46,20 @@ struct BillDetailView: View {
                         if bill.assignmentMode == .uploaderAssigns && isUploader {
                             // Only uploader can assign in uploader_assigns mode
                             Button {
-                                showAssignmentView = true
+                                Task {
+                                    await refreshBill()
+                                    showAssignmentView = true
+                                }
                             } label: {
                                 Label("Assign Items", systemImage: "person.badge.plus")
                             }
-                        } else if bill.assignmentMode == .selfSelect {
+                        } else if bill.assignmentMode == .selfSelect && currentUserId != nil {
                             // Everyone including uploader can claim in self_select mode
                             Button {
-                                showClaimView = true
+                                Task {
+                                    await refreshBill()
+                                    showClaimView = true
+                                }
                             } label: {
                                 Label("Claim Items", systemImage: "hand.raised")
                             }
@@ -213,6 +219,15 @@ struct BillDetailView: View {
         do {
             let response = try await APIService.shared.getMe()
             currentUserId = response.data.id
+        } catch {
+            // Handle error silently
+        }
+    }
+
+    private func refreshBill() async {
+        do {
+            let response = try await APIService.shared.getBill(id: bill.id)
+            bill = response.data
         } catch {
             // Handle error silently
         }

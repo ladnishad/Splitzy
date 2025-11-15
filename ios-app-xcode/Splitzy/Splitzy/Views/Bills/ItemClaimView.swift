@@ -288,119 +288,113 @@ struct ItemClaimCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Item Header
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(item.name)
-                        .font(.title3)
-                        .fontWeight(.semibold)
+        Button {
+            if remainingQuantity > 0 {
+                onClaim()
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 16) {
+                // Item Header
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(item.name)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
 
-                    HStack(spacing: 16) {
-                        Label("\(item.quantity) total", systemImage: "number")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 16) {
+                            Label("\(item.quantity) total", systemImage: "number")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                        Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                }
 
-                Spacer()
+                    Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    if remainingQuantity > 0 {
-                        Text("\(remainingQuantity) left")
-                            .font(.caption)
-                            .foregroundStyle(.green)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if remainingQuantity > 0 {
+                            HStack(spacing: 4) {
+                                Text("\(remainingQuantity) left")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2)
+                                    .foregroundStyle(.green)
+                            }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
                             .background(.green.opacity(0.15))
                             .clipShape(Capsule())
-                    } else {
-                        Text("All claimed")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(.gray.opacity(0.15))
-                            .clipShape(Capsule())
-                    }
-                }
-            }
-
-            // My Claims
-            if !myClaims.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(.blue)
-                        Text("You claimed \(myClaimedTotal)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.blue)
-                    }
-
-                    ForEach(myClaims) { claim in
-                        HStack {
-                            HStack(spacing: 6) {
-                                Image(systemName: "multiply")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                Text("\(claim.quantity)")
-                                    .fontWeight(.medium)
-                                Text("× $\(item.cost, specifier: "%.2f")")
-                                    .foregroundStyle(.secondary)
-                                Text("= $\(item.cost * Double(claim.quantity), specifier: "%.2f")")
-                                    .fontWeight(.semibold)
-                            }
-                            .font(.subheadline)
-
-                            Spacer()
-
-                            Button(role: .destructive) {
-                                onRemoveClaim(claim)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
-                                    .font(.title3)
-                            }
+                        } else {
+                            Text("All claimed")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(.gray.opacity(0.15))
+                                .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.blue.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
-            }
 
-            // Claim Button
-            if remainingQuantity > 0 {
-                Button {
-                    onClaim()
-                } label: {
-                    HStack {
-                        Image(systemName: "hand.raised.fill")
-                        Text("Claim This")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                // My Claims
+                if !myClaims.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(.blue)
+                            Text("You claimed \(myClaimedTotal)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.blue)
+                        }
+
+                        ForEach(myClaims) { claim in
+                            HStack {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "multiply")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(claim.quantity)")
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.primary)
+                                    Text("× $\(item.cost, specifier: "%.2f")")
+                                        .foregroundStyle(.secondary)
+                                    Text("= $\(item.cost * Double(claim.quantity), specifier: "%.2f")")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                }
+                                .font(.subheadline)
+
+                                Spacer()
+
+                                Button(role: .destructive) {
+                                    onRemoveClaim(claim)
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundStyle(.red)
+                                        .font(.title3)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.blue.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
                     }
-                    .font(.body)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.blue)
-                    .padding()
-                    .background(.blue.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
+            .padding()
+            .background(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
         }
-        .padding()
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .buttonStyle(.plain)
+        .disabled(remainingQuantity <= 0)
     }
 }
 
@@ -416,96 +410,90 @@ struct ClaimItemSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Item Info Card
-                VStack(spacing: 16) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(item.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Item Info Card
+                        VStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(item.name)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                            HStack(spacing: 12) {
-                                Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle.fill")
+                                HStack(spacing: 12) {
+                                    Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle.fill")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+
+                                    Spacer()
+
+                                    Text("\(maxQuantity) available")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(.gray.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        // Quantity Picker
+                        VStack(spacing: 16) {
+                            Text("How many?")
+                                .font(.headline)
+
+                            HStack(spacing: 20) {
+                                Button {
+                                    if quantity > 1 {
+                                        quantity -= 1
+                                    }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundStyle(quantity > 1 ? .blue : .gray)
+                                }
+                                .disabled(quantity <= 1)
+
+                                Text("\(quantity)")
+                                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.blue)
+                                    .frame(minWidth: 70)
+
+                                Button {
+                                    if quantity < maxQuantity {
+                                        quantity += 1
+                                    }
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundStyle(quantity < maxQuantity ? .blue : .gray)
+                                }
+                                .disabled(quantity >= maxQuantity)
+                            }
+
+                            // Total Display
+                            VStack(spacing: 6) {
+                                Text("Your total for this")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
+
+                                Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.blue)
                             }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(.blue.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        Spacer()
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("Available")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(maxQuantity)")
-                            .fontWeight(.semibold)
-                            .font(.title3)
-                            .foregroundStyle(.green)
-                    }
-                }
-                .padding()
-                .background(.gray.opacity(0.05))
-
-                // Quantity Picker
-                VStack(spacing: 24) {
-                    VStack(spacing: 12) {
-                        Text("How many?")
-                            .font(.headline)
-
-                        HStack(spacing: 20) {
-                            Button {
-                                if quantity > 1 {
-                                    quantity -= 1
-                                }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundStyle(quantity > 1 ? .blue : .gray)
-                            }
-                            .disabled(quantity <= 1)
-
-                            Text("\(quantity)")
-                                .font(.system(size: 48, weight: .bold, design: .rounded))
-                                .foregroundStyle(.blue)
-                                .frame(minWidth: 80)
-
-                            Button {
-                                if quantity < maxQuantity {
-                                    quantity += 1
-                                }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundStyle(quantity < maxQuantity ? .blue : .gray)
-                            }
-                            .disabled(quantity >= maxQuantity)
-                        }
+                        .padding(.vertical)
                     }
                     .padding()
-
-                    // Total Display
-                    VStack(spacing: 8) {
-                        Text("Your total for this")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
-                            .foregroundStyle(.blue)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(.blue.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal)
                 }
-                .padding(.vertical, 32)
 
-                Spacer()
-
-                // Claim Button
+                // Claim Button - Fixed at bottom
                 Button {
                     onClaim(quantity)
                     dismiss()
@@ -519,10 +507,11 @@ struct ClaimItemSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(.blue.gradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .disabled(maxQuantity < 1)
                 .padding()
+                .background(.white)
             }
             .navigationTitle("Claim Item")
             .navigationBarTitleDisplayMode(.inline)
@@ -535,6 +524,7 @@ struct ClaimItemSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
 
