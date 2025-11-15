@@ -11,108 +11,164 @@ struct ItemAssignmentView: View {
     @State private var errorMessage: String?
     @State private var showFinalize = false
 
+    var allItemsAssigned: Bool {
+        for item in bill.items {
+            let assignedQty = getAssignedQuantity(for: item)
+            if assignedQty < item.quantity {
+                return false
+            }
+        }
+        return true
+    }
+
     var body: some View {
         NavigationStack {
-            List {
-                // Items section
-                Section("Items") {
-                    ForEach(bill.items) { item in
-                        let assignedQuantity = getAssignedQuantity(for: item)
-                        let remainingQuantity = item.quantity - assignedQuantity
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(item.name)
-                                    .font(.headline)
-                                Spacer()
-                                Text("$\(item.cost, specifier: "%.2f")")
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            HStack {
-                                Text("Total qty: \(item.quantity)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                if remainingQuantity > 0 {
-                                    Text("Remaining: \(remainingQuantity)")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                } else {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
-                                        Text("Fully assigned")
-                                    }
-                                    .font(.caption)
-                                    .foregroundStyle(.green)
-                                }
-                            }
-
-                            // Show assignments for this item
-                            if !getAssignments(for: item).isEmpty {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    ForEach(getAssignments(for: item)) { assignment in
-                                        HStack {
-                                            Image(systemName: "person.fill")
-                                                .font(.caption2)
-                                                .foregroundStyle(.blue)
-                                            Text(assignment.participant.name)
-                                                .font(.caption)
-                                            Text("× \(assignment.quantity)")
-                                                .font(.caption)
+            ZStack {
+                if bill.items.isEmpty {
+                    ContentUnavailableView(
+                        "No Items",
+                        systemImage: "cart",
+                        description: Text("This bill doesn't have any items yet")
+                    )
+                } else {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Progress Card
+                            if !bill.items.isEmpty {
+                                VStack(spacing: 12) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Assignment Progress")
+                                                .font(.subheadline)
                                                 .foregroundStyle(.secondary)
-                                            Spacer()
-                                            Button(role: .destructive) {
-                                                Task {
-                                                    await removeAssignment(assignment)
+
+                                            if allItemsAssigned {
+                                                HStack(spacing: 8) {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .foregroundStyle(.green)
+                                                    Text("All items assigned!")
+                                                        .font(.title3)
+                                                        .fontWeight(.semibold)
+                                                        .foregroundStyle(.green)
                                                 }
-                                            } label: {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundStyle(.red)
-                                                    .font(.caption)
+                                            } else {
+                                                let totalItems = bill.items.reduce(0) { $0 + $1.quantity }
+                                                let assignedItems = bill.items.reduce(0) { sum, item in
+                                                    sum + getAssignedQuantity(for: item)
+                                                }
+                                                Text("\(assignedItems) / \(totalItems) items")
+                                                    .font(.title3)
+                                                    .fontWeight(.semibold)
                                             }
                                         }
-                                        .padding(.leading, 8)
+                                        Spacer()
+
+                                        if allItemsAssigned {
+                                            Button {
+                                                showFinalize = true
+                                            } label: {
+                                                HStack {
+                                                    Image(systemName: "checkmark.seal.fill")
+                                                    Text("Finalize")
+                                                }
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 20)
+                                                .padding(.vertical, 12)
+                                                .background(.green.gradient)
+                                                .clipShape(Capsule())
+                                            }
+                                        }
                                     }
+                                    .padding()
+                                    .background(allItemsAssigned ? .green.opacity(0.1) : .orange.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
                                 }
+                                .padding(.horizontal)
                             }
 
-                            // Assign button
-                            if remainingQuantity > 0 {
-                                Button {
-                                    selectedItem = item
-                                } label: {
-                                    Label("Assign", systemImage: "person.badge.plus")
+                            // Items
+                            VStack(spacing: 16) {
+                                ForEach(bill.items) { item in
+                                    ItemAssignmentCard(
+                                        item: item,
+                                        bill: bill,
+                                        onAssign: {
+                                            selectedItem = item
+                                        },
+                                        onRemoveAssignment: { assignment in
+                                            Task { await removeAssignment(assignment) }
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal)
+
+                            // Shares Summary
+                            if !bill.shares.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Share Breakdown")
+                                        .font(.headline)
+                                        .padding(.horizontal)
+
+                                    VStack(spacing: 0) {
+                                        ForEach(bill.shares) { share in
+                                            HStack {
+                                                HStack(spacing: 12) {
+                                                    ZStack {
+                                                        Circle()
+                                                            .fill(.blue.gradient)
+                                                            .frame(width: 40, height: 40)
+
+                                                        Text(String(share.participant.name.prefix(1)))
+                                                            .font(.headline)
+                                                            .foregroundStyle(.white)
+                                                    }
+
+                                                    Text(share.participant.name)
+                                                        .font(.body)
+                                                }
+
+                                                Spacer()
+
+                                                Text("$\(share.amount, specifier: "%.2f")")
+                                                    .font(.headline)
+                                                    .fontWeight(.bold)
+                                                    .foregroundStyle(share.amount > 0 ? .blue : .secondary)
+                                            }
+                                            .padding()
+
+                                            if share.id != bill.shares.last?.id {
+                                                Divider()
+                                                    .padding(.leading, 68)
+                                            }
+                                        }
+                                    }
+                                    .background(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                                }
+                                .padding(.horizontal)
+                            }
+
+                            // Error message
+                            if let errorMessage {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundStyle(.red)
+                                    Text(errorMessage)
                                         .font(.caption)
+                                        .foregroundStyle(.red)
                                 }
+                                .padding()
+                                .background(.red.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .padding(.horizontal)
                             }
                         }
+                        .padding(.vertical)
                     }
-                }
-
-                // Summary section
-                Section("Summary") {
-                    ForEach(bill.shares) { share in
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .foregroundStyle(.blue)
-                            Text(share.participant.name)
-                            Spacer()
-                            Text("$\(share.amount, specifier: "%.2f")")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(share.amount > 0 ? .blue : .secondary)
-                        }
-                    }
-                }
-
-                // Error message
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .font(.caption)
-                    }
+                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("Assign Items")
@@ -121,14 +177,6 @@ struct ItemAssignmentView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
                         dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .primaryAction) {
-                    if allItemsAssigned {
-                        Button("Finalize") {
-                            showFinalize = true
-                        }
                     }
                 }
             }
@@ -154,16 +202,6 @@ struct ItemAssignmentView: View {
                 Text("Once finalized, assignments cannot be changed. Are you sure?")
             }
         }
-    }
-
-    private var allItemsAssigned: Bool {
-        for item in bill.items {
-            let assignedQty = getAssignedQuantity(for: item)
-            if assignedQty < item.quantity {
-                return false
-            }
-        }
-        return true
     }
 
     private func getAssignedQuantity(for item: BillItem) -> Int {
@@ -225,6 +263,166 @@ struct ItemAssignmentView: View {
     }
 }
 
+// Individual Item Assignment Card
+struct ItemAssignmentCard: View {
+    let item: BillItem
+    let bill: Bill
+    let onAssign: () -> Void
+    let onRemoveAssignment: (ItemAssignment) -> Void
+
+    private var assignedQuantity: Int {
+        guard let itemId = item.id else { return 0 }
+        return bill.itemAssignments
+            .filter { $0.itemId == itemId }
+            .reduce(0) { $0 + $1.quantity }
+    }
+
+    private var remainingQuantity: Int {
+        item.quantity - assignedQuantity
+    }
+
+    private var assignments: [ItemAssignment] {
+        guard let itemId = item.id else { return [] }
+        return bill.itemAssignments.filter { $0.itemId == itemId }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Item Header
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.name)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+
+                    HStack(spacing: 16) {
+                        Label("\(item.quantity) total", systemImage: "number")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    if remainingQuantity > 0 {
+                        Text("\(remainingQuantity) left")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(.orange.opacity(0.15))
+                            .clipShape(Capsule())
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption2)
+                            Text("Complete")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.green.opacity(0.15))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+
+            // Assignments
+            if !assignments.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .foregroundStyle(.blue)
+                        Text("Assigned to:")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.blue)
+                    }
+
+                    ForEach(assignments) { assignment in
+                        HStack {
+                            HStack(spacing: 8) {
+                                ZStack {
+                                    Circle()
+                                        .fill(.blue.opacity(0.2))
+                                        .frame(width: 28, height: 28)
+
+                                    Text(String(assignment.participant.name.prefix(1)))
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.blue)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(assignment.participant.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+
+                                    HStack(spacing: 4) {
+                                        Text("\(assignment.quantity)×")
+                                        Text("$\(item.cost, specifier: "%.2f")")
+                                        Text("=")
+                                        Text("$\(item.cost * Double(assignment.quantity), specifier: "%.2f")")
+                                            .fontWeight(.semibold)
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            Button(role: .destructive) {
+                                onRemoveAssignment(assignment)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.red)
+                                    .font(.title3)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(.blue.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+
+            // Assign Button
+            if remainingQuantity > 0 {
+                Button {
+                    onAssign()
+                } label: {
+                    HStack {
+                        Image(systemName: "person.badge.plus.fill")
+                        Text("Assign to Someone")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.blue)
+                    .padding()
+                    .background(.blue.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+        }
+        .padding()
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+}
+
 // Sheet for assigning an item to a participant
 struct AssignItemSheet: View {
     @Binding var bill: Bill
@@ -245,55 +443,166 @@ struct AssignItemSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Item") {
+            VStack(spacing: 0) {
+                // Item Info Card
+                VStack(spacing: 16) {
                     HStack {
-                        Text(item.name)
-                            .font(.headline)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(item.name)
+                                .font(.title2)
+                                .fontWeight(.bold)
+
+                            Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
-                        Text("$\(item.cost, specifier: "%.2f")")
-                            .foregroundStyle(.secondary)
                     }
 
+                    Divider()
+
                     HStack {
-                        Text("Available quantity")
+                        Text("Available")
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Text("\(maxQuantity)")
-                            .foregroundStyle(.secondary)
+                            .fontWeight(.semibold)
+                            .font(.title3)
+                            .foregroundStyle(.green)
                     }
                 }
+                .padding()
+                .background(.gray.opacity(0.05))
 
-                Section("Assign To") {
-                    ForEach(bill.participants) { participant in
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .foregroundStyle(.blue)
-                            Text(participant.name)
-                            Spacer()
-                            if selectedParticipant?.id == participant.id {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.blue)
+                // Participants Selection
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Text("Assign to")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+
+                        ForEach(bill.participants) { participant in
+                            Button {
+                                selectedParticipant = participant
+                            } label: {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(selectedParticipant?.id == participant.id ? .blue.gradient : .gray.opacity(0.2))
+                                            .frame(width: 44, height: 44)
+
+                                        Text(String(participant.name.prefix(1)))
+                                            .font(.headline)
+                                            .foregroundStyle(selectedParticipant?.id == participant.id ? .white : .gray)
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(participant.name)
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(.primary)
+                                        Text(participant.email)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    if selectedParticipant?.id == participant.id {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(.blue)
+                                            .font(.title3)
+                                    }
+                                }
+                                .padding()
+                                .background(selectedParticipant?.id == participant.id ? .blue.opacity(0.05) : .clear)
+                            }
+
+                            if participant.id != bill.participants.last?.id {
+                                Divider()
+                                    .padding(.leading, 68)
                             }
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedParticipant = participant
-                        }
                     }
                 }
 
+                // Quantity Picker
                 if selectedParticipant != nil {
-                    Section("Quantity") {
-                        Stepper("\(quantity)", value: $quantity, in: 1...maxQuantity)
+                    VStack(spacing: 16) {
+                        Divider()
 
+                        HStack(spacing: 20) {
+                            Button {
+                                if quantity > 1 {
+                                    quantity -= 1
+                                }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(quantity > 1 ? .blue : .gray)
+                            }
+                            .disabled(quantity <= 1)
+
+                            VStack(spacing: 4) {
+                                Text("Quantity")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(quantity)")
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.blue)
+                            }
+                            .frame(minWidth: 80)
+
+                            Button {
+                                if quantity < maxQuantity {
+                                    quantity += 1
+                                }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(quantity < maxQuantity ? .blue : .gray)
+                            }
+                            .disabled(quantity >= maxQuantity)
+                        }
+                        .padding(.vertical)
+
+                        // Total Display
                         HStack {
-                            Text("Total for this assignment")
+                            Text("Total")
                             Spacer()
                             Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
-                                .fontWeight(.semibold)
+                                .font(.title3)
+                                .fontWeight(.bold)
                                 .foregroundStyle(.blue)
                         }
+                        .padding()
+                        .background(.blue.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .padding()
+                }
+
+                // Assign Button
+                if selectedParticipant != nil {
+                    Button {
+                        if let participant = selectedParticipant {
+                            onAssign(participant, quantity)
+                            dismiss()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.badge.plus.fill")
+                            Text("Assign \(quantity) to \(selectedParticipant?.name ?? "")")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.blue.gradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .padding()
                 }
             }
             .navigationTitle("Assign Item")
@@ -304,18 +613,9 @@ struct AssignItemSheet: View {
                         dismiss()
                     }
                 }
-
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Assign") {
-                        if let participant = selectedParticipant {
-                            onAssign(participant, quantity)
-                            dismiss()
-                        }
-                    }
-                    .disabled(selectedParticipant == nil)
-                }
             }
         }
+        .presentationDetents([.large])
     }
 }
 
