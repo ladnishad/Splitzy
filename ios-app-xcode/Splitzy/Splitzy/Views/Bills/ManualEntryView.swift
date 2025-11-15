@@ -70,29 +70,65 @@ struct ManualEntryView: View {
             // Items
             Section {
                 ForEach(items.indices, id: \.self) { index in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Item name
                         HStack {
                             TextField("Item name", text: $items[index].name)
+                                .font(.body)
 
                             Button(role: .destructive) {
                                 items.remove(at: index)
                             } label: {
-                                Image(systemName: "trash")
+                                Image(systemName: "trash.circle.fill")
                                     .foregroundStyle(.red)
+                                    .font(.title3)
                             }
                         }
 
+                        // Price per item
                         HStack {
-                            Stepper("Qty: \(items[index].quantity)", value: $items[index].quantity, in: 1...99)
+                            Text("Price per item")
                                 .font(.subheadline)
+                                .foregroundStyle(.secondary)
 
                             Spacer()
 
-                            TextField("Price", value: $items[index].price, format: .currency(code: "USD"))
+                            TextField("0.00", value: $items[index].price, format: .currency(code: "USD"))
                                 .keyboardType(.decimalPad)
-                                .frame(width: 100)
                                 .multilineTextAlignment(.trailing)
+                                .font(.body)
+                                .frame(width: 100)
                         }
+
+                        // Quantity selector with total
+                        VStack(spacing: 6) {
+                            HStack {
+                                Text("Quantity")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                Spacer()
+
+                                Stepper("\(items[index].quantity)", value: $items[index].quantity, in: 1...99)
+                                    .fixedSize()
+                            }
+
+                            // Total for this item
+                            HStack {
+                                Text("Item total")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Spacer()
+
+                                Text("$\(items[index].price * Double(items[index].quantity), specifier: "%.2f")")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+
+                        Divider()
                     }
                     .padding(.vertical, 4)
                 }
@@ -107,13 +143,16 @@ struct ManualEntryView: View {
             } footer: {
                 if !items.isEmpty {
                     HStack {
-                        Text("Total")
+                        Text("Bill Total")
                             .fontWeight(.semibold)
+                            .font(.headline)
                         Spacer()
                         Text("$\(totalAmount, specifier: "%.2f")")
                             .fontWeight(.bold)
                             .foregroundStyle(.blue)
+                            .font(.headline)
                     }
+                    .padding(.top, 4)
                 }
             }
 

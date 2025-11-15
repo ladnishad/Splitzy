@@ -3,6 +3,7 @@ import SwiftUI
 struct BillDetailView: View {
     let bill: Bill
     @State private var showDeleteAlert = false
+    @State private var isDeleting = false
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -114,11 +115,25 @@ struct BillDetailView: View {
         .alert("Delete Bill", isPresented: $showDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                // Handle delete
-                dismiss()
+                Task {
+                    await deleteBill()
+                }
             }
         } message: {
             Text("Are you sure you want to delete this bill? This action cannot be undone.")
+        }
+        .disabled(isDeleting)
+    }
+
+    private func deleteBill() async {
+        isDeleting = true
+
+        do {
+            _ = try await APIService.shared.deleteBill(id: bill.id)
+            dismiss()
+        } catch {
+            // Handle error silently for now
+            isDeleting = false
         }
     }
 }
