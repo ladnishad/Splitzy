@@ -1,9 +1,12 @@
 import SwiftUI
 
 struct BillDetailView: View {
-    let bill: Bill
+    @State var bill: Bill
     @State private var showDeleteAlert = false
     @State private var isDeleting = false
+    @State private var showAssignmentView = false
+    @State private var showClaimView = false
+    @State private var currentUserId: String?
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -26,6 +29,71 @@ struct BillDetailView: View {
                 LabeledContent("Name", value: bill.restaurant.name)
                 LabeledContent("Type", value: bill.restaurant.type.displayName)
                 LabeledContent("Status", value: bill.status.displayName)
+            }
+
+            // Assignment Mode & Actions
+            if bill.assignmentMode != .notSet {
+                Section {
+                    HStack {
+                        Text("Split Mode")
+                        Spacer()
+                        Text(bill.assignmentMode.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Show appropriate action button
+                    if isUploader {
+                        if bill.assignmentMode == .uploaderAssigns && bill.status != .finalized {
+                            Button {
+                                showAssignmentView = true
+                            } label: {
+                                Label("Assign Items", systemImage: "person.badge.plus")
+                            }
+                        }
+                    } else {
+                        if bill.assignmentMode == .selfSelect && bill.status != .finalized {
+                            Button {
+                                showClaimView = true
+                            } label: {
+                                Label("Claim Items", systemImage: "hand.raised")
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Bill Splitting")
+                }
+            }
+
+            // Shares - Who owes what
+            if !bill.shares.isEmpty {
+                Section("Who Owes What") {
+                    ForEach(bill.shares) { share in
+                        HStack {
+                            Image(systemName: "dollarsign.circle.fill")
+                                .foregroundStyle(.green)
+
+                            Text(share.participant.name)
+                                .font(.body)
+
+                            Spacer()
+
+                            Text("$\(share.amount, specifier: "%.2f")")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(share.amount > 0 ? .blue : .secondary)
+                        }
+                    }
+
+                    if bill.status == .finalized {
+                        HStack {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(.green)
+                            Text("Bill finalized")
+                                .foregroundStyle(.green)
+                                .font(.caption)
+                        }
+                    }
+                }
             }
 
             // Participants
@@ -122,7 +190,32 @@ struct BillDetailView: View {
         } message: {
             Text("Are you sure you want to delete this bill? This action cannot be undone.")
         }
+        .sheet(isPresented: $showAssignmentView) {
+            ItemAssignmentView(bill: $bill)
+        }
+        .sheet(isPresented: $showClaimView) {
+            if let userId = currentUserId {
+                ItemClaimView(bill: $bill, currentUserId: userId)
+            }
+        }
+        .task {
+            await loadCurrentUser()
+        }
         .disabled(isDeleting)
+    }
+
+    private var isUploader: Bool {
+        guard let userId = currentUserId else { return false }
+        return bill.uploadedBy.id == userId
+    }
+
+    private func loadCurrentUser() async {
+        do {
+            let response = try await APIService.shared.getMe()
+            currentUserId = response.data.id
+        } catch {
+            // Handle error silently
+        }
     }
 
     private func deleteBill() async {

@@ -260,6 +260,66 @@ class APIService: ObservableObject {
 
         return try await performRequest(request)
     }
+
+    // MARK: - Bill Assignment & Splitting
+
+    func setAssignmentMode(billId: String, mode: AssignmentMode) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/\(billId)/assignment-mode", method: "PUT") else {
+            throw APIError.invalidURL
+        }
+
+        let body: [String: Any] = ["mode": mode.rawValue]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return try await performRequest(request)
+    }
+
+    func assignItem(billId: String, itemId: String, participantId: String, quantity: Int) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/\(billId)/assign-item", method: "POST") else {
+            throw APIError.invalidURL
+        }
+
+        let body: [String: Any] = [
+            "itemId": itemId,
+            "participantId": participantId,
+            "quantity": quantity
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return try await performRequest(request)
+    }
+
+    func claimItem(billId: String, itemId: String, quantity: Int) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/\(billId)/claim-item", method: "POST") else {
+            throw APIError.invalidURL
+        }
+
+        let body: [String: Any] = [
+            "itemId": itemId,
+            "quantity": quantity
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return try await performRequest(request)
+    }
+
+    func removeAssignment(billId: String, assignmentId: String) async throws -> BillResponse {
+        guard let request = createRequest(endpoint: "/bills/\(billId)/assignments/\(assignmentId)", method: "DELETE") else {
+            throw APIError.invalidURL
+        }
+
+        return try await performRequest(request)
+    }
+
+    func finalizeBill(billId: String) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/\(billId)/finalize", method: "PUT") else {
+            throw APIError.invalidURL
+        }
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [:])
+
+        return try await performRequest(request)
+    }
 }
 
 // MARK: - API Errors

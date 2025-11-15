@@ -7,6 +7,7 @@ struct ManualEntryView: View {
     @State private var restaurantName = ""
     @State private var selectedParticipants: Set<String> = []
     @State private var items: [ManualBillItem] = []
+    @State private var assignmentMode: AssignmentMode = .uploaderAssigns
     @State private var isCreating = false
     @State private var errorMessage: String?
 
@@ -25,49 +26,7 @@ struct ManualEntryView: View {
                 TextField("Restaurant Name", text: $restaurantName)
             }
 
-            // Participants
-            Section {
-                if friendsViewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                } else if friendsViewModel.friends.isEmpty {
-                    Text("No friends added yet")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(friendsViewModel.friends, id: \.id) { friend in
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .foregroundStyle(.blue)
-
-                            Text(friend.name)
-
-                            Spacer()
-
-                            if selectedParticipants.contains(friend.id) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if selectedParticipants.contains(friend.id) {
-                                selectedParticipants.remove(friend.id)
-                            } else {
-                                selectedParticipants.insert(friend.id)
-                            }
-                        }
-                    }
-                }
-            } header: {
-                Text("Participants")
-            } footer: {
-                Text("You will be automatically added")
-            }
-
-            // Items
+            // Items (moved before participants)
             Section {
                 ForEach(items.indices, id: \.self) { index in
                     VStack(alignment: .leading, spacing: 12) {
@@ -156,6 +115,65 @@ struct ManualEntryView: View {
                 }
             }
 
+            // Participants (moved after items)
+            Section {
+                if friendsViewModel.isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                } else if friendsViewModel.friends.isEmpty {
+                    Text("No friends added yet")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(friendsViewModel.friends, id: \.id) { friend in
+                        HStack {
+                            Image(systemName: "person.circle.fill")
+                                .foregroundStyle(.blue)
+
+                            Text(friend.name)
+
+                            Spacer()
+
+                            if selectedParticipants.contains(friend.id) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if selectedParticipants.contains(friend.id) {
+                                selectedParticipants.remove(friend.id)
+                            } else {
+                                selectedParticipants.insert(friend.id)
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Participants")
+            } footer: {
+                Text("You will be automatically added")
+            }
+
+            // Assignment Mode
+            Section {
+                Picker("Assignment Mode", selection: $assignmentMode) {
+                    Text(AssignmentMode.uploaderAssigns.displayName).tag(AssignmentMode.uploaderAssigns)
+                    Text(AssignmentMode.selfSelect.displayName).tag(AssignmentMode.selfSelect)
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("How to Split")
+            } footer: {
+                if assignmentMode == .uploaderAssigns {
+                    Text("You'll assign items to each participant")
+                } else {
+                    Text("Participants will claim their own items")
+                }
+            }
+
             // Error Message
             if let errorMessage {
                 Section {
@@ -201,11 +219,18 @@ struct ManualEntryView: View {
                 BillItem(id: nil, name: item.name, quantity: item.quantity, cost: item.price)
             }
 
-            _ = try await APIService.shared.createManualBill(
+            let response = try await APIService.shared.createManualBill(
                 restaurantName: restaurantName,
                 participants: participantIds,
                 items: billItems
             )
+
+            // Set assignment mode
+            _ = try await APIService.shared.setAssignmentMode(
+                billId: response.data.id,
+                mode: assignmentMode
+            )
+
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

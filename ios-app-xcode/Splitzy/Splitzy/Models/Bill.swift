@@ -8,12 +8,16 @@ struct Bill: Identifiable, Codable {
     var items: [BillItem]
     var totalAmount: Double
     var status: BillStatus
+    var assignmentMode: AssignmentMode
+    var itemAssignments: [ItemAssignment]
+    var shares: [BillShare]
     var restaurant: Restaurant
     let createdAt: String
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case uploadedBy, imageUrl, participants, items, totalAmount, status, restaurant, createdAt
+        case uploadedBy, imageUrl, participants, items, totalAmount, status
+        case assignmentMode, itemAssignments, shares, restaurant, createdAt
     }
 }
 
@@ -53,6 +57,7 @@ enum BillStatus: String, Codable {
     case processing = "processing"
     case processed = "processed"
     case split = "split"
+    case finalized = "finalized"
 
     var displayName: String {
         switch self {
@@ -60,8 +65,42 @@ enum BillStatus: String, Codable {
         case .processing: return "Processing"
         case .processed: return "Processed"
         case .split: return "Split"
+        case .finalized: return "Finalized"
         }
     }
+}
+
+enum AssignmentMode: String, Codable {
+    case notSet = "not_set"
+    case uploaderAssigns = "uploader_assigns"
+    case selfSelect = "self_select"
+
+    var displayName: String {
+        switch self {
+        case .notSet: return "Not Set"
+        case .uploaderAssigns: return "I'll Assign"
+        case .selfSelect: return "Let Them Pick"
+        }
+    }
+}
+
+struct ItemAssignment: Identifiable, Codable {
+    var id: String?
+    let itemId: String
+    let participant: User
+    let quantity: Int
+    let claimedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case itemId, participant, quantity, claimedAt
+    }
+}
+
+struct BillShare: Identifiable, Codable {
+    var id: String { participant.id }
+    let participant: User
+    let amount: Double
 }
 
 // API Response models

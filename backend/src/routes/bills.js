@@ -1,7 +1,19 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { createManualBill, uploadBill, getBills, getBill, updateBillItems, deleteBill } = require('../controllers/billsController');
+const {
+  createManualBill,
+  uploadBill,
+  getBills,
+  getBill,
+  updateBillItems,
+  deleteBill,
+  setAssignmentMode,
+  assignItem,
+  claimItem,
+  removeAssignment,
+  finalizeBill
+} = require('../controllers/billsController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -42,5 +54,12 @@ router.get('/', getBills);
 router.get('/:id', getBill);
 router.put('/:id/items', updateBillItems);
 router.delete('/:id', deleteBill);
+
+// Assignment and splitting routes
+router.put('/:id/assignment-mode', setAssignmentMode);
+router.post('/:id/assign-item', assignItem);
+router.post('/:id/claim-item', claimItem);
+router.delete('/:id/assignments/:assignmentId', removeAssignment);
+router.put('/:id/finalize', finalizeBill);
 
 module.exports = router;
