@@ -39,7 +39,7 @@ const createManualBill = async (req, res) => {
     bill.calculateTotal();
     await bill.save();
 
-    await bill.populate('uploadedBy participants', 'name email');
+    await bill.populate('uploadedBy participants', 'name email preferences');
 
     res.status(201).json({
       success: true,
@@ -92,7 +92,7 @@ const uploadBill = async (req, res) => {
       }
     });
 
-    await bill.populate('uploadedBy participants', 'name email');
+    await bill.populate('uploadedBy participants', 'name email preferences');
 
     res.status(201).json({
       success: true,
@@ -114,7 +114,7 @@ const getBills = async (req, res) => {
     const bills = await Bill.find({
       participants: req.user.id
     })
-    .populate('uploadedBy participants', 'name email')
+    .populate('uploadedBy participants', 'name email preferences')
     .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -197,7 +197,7 @@ const updateBillItems = async (req, res) => {
     bill.status = 'processed';
 
     await bill.save();
-    await bill.populate('uploadedBy participants', 'name email');
+    await bill.populate('uploadedBy participants', 'name email preferences');
 
     res.status(200).json({
       success: true,
