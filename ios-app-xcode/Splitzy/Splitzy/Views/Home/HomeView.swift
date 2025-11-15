@@ -6,63 +6,43 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Subtle gradient background
-                LinearGradient(
-                    colors: [Color(.systemBackground), Color.blue.opacity(0.05)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
+            Group {
                 if viewModel.isLoading && viewModel.bills.isEmpty {
                     ProgressView("Loading bills...")
                 } else if viewModel.bills.isEmpty {
                     ContentUnavailableView(
                         "No Bills Yet",
                         systemImage: "doc.text",
-                        description: Text("Upload your first bill to get started")
+                        description: Text("Add your first bill to get started")
                     )
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(viewModel.bills) { bill in
-                                NavigationLink {
-                                    BillDetailView(bill: bill)
-                                } label: {
-                                    BillCardView(bill: bill)
-                                }
-                                .buttonStyle(.plain)
+                    List {
+                        ForEach(viewModel.bills) { bill in
+                            NavigationLink {
+                                BillDetailView(bill: bill)
+                            } label: {
+                                BillRowView(bill: bill)
                             }
                         }
-                        .padding()
                     }
+                    .listStyle(.insetGrouped)
                     .refreshable {
                         await viewModel.loadBills()
                     }
                 }
             }
             .navigationTitle("Bills")
-            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showUploadBill = true
                     } label: {
-                        ZStack {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.blue)
-                        }
+                        Image(systemName: "plus")
                     }
                 }
             }
             .sheet(isPresented: $showUploadBill) {
-                UploadBillView()
+                CreateBillView()
                     .onDisappear {
                         Task {
                             await viewModel.loadBills()
@@ -85,82 +65,47 @@ struct HomeView: View {
     }
 }
 
-struct BillCardView: View {
+struct BillRowView: View {
     let bill: Bill
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header with restaurant name and amount
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(bill.restaurant.name)
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-
-                    Label(
-                        bill.restaurant.type.displayName,
-                        systemImage: bill.restaurant.type == .bar ? "wineglass" : "fork.knife"
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(bill.restaurant.name)
+                    .font(.headline)
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("$\(bill.totalAmount, specifier: "%.2f")")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-
-                    Text(bill.status.displayName)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(statusColor(for: bill.status).opacity(0.15))
-                        .foregroundStyle(statusColor(for: bill.status))
-                        .clipShape(Capsule())
-                }
+                Text("$\(bill.totalAmount, specifier: "%.2f")")
+                    .font(.headline)
+                    .foregroundStyle(.blue)
             }
 
-            // Divider
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .frame(height: 1)
+            HStack {
+                Label(bill.restaurant.type.displayName, systemImage: bill.restaurant.type == .bar ? "wineglass" : "fork.knife")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            // Participants info
-            HStack(spacing: 8) {
+                Spacer()
+
+                Text(bill.status.displayName)
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(statusColor(for: bill.status).opacity(0.2))
+                    .foregroundStyle(statusColor(for: bill.status))
+                    .clipShape(Capsule())
+            }
+
+            HStack {
                 Image(systemName: "person.2.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
+                    .font(.caption2)
                 Text("\(bill.participants.count) participants")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .font(.caption2)
             }
+            .foregroundStyle(.secondary)
         }
-        .padding(20)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-        )
+        .padding(.vertical, 4)
     }
 
     func statusColor(for status: BillStatus) -> Color {

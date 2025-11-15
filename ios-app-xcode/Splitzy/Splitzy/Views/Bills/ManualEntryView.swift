@@ -1,47 +1,31 @@
 import SwiftUI
-import PhotosUI
 
-struct UploadBillView: View {
+struct ManualEntryView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var friendsViewModel = FriendsViewModel()
 
-    @State private var selectedImage: PhotosPickerItem?
-    @State private var imageData: Data?
     @State private var restaurantName = ""
     @State private var selectedParticipants: Set<String> = []
-    @State private var isUploading = false
+    @State private var items: [ManualBillItem] = []
+    @State private var isCreating = false
     @State private var errorMessage: String?
 
-    var canUpload: Bool {
-        imageData != nil && !restaurantName.isEmpty && !selectedParticipants.isEmpty
+    var totalAmount: Double {
+        items.reduce(0) { $0 + ($1.price * Double($1.quantity)) }
+    }
+
+    var canCreate: Bool {
+        !restaurantName.isEmpty && !selectedParticipants.isEmpty && !items.isEmpty
     }
 
     var body: some View {
         Form {
-            // Image Picker Section
-            Section {
-                PhotosPicker(selection: $selectedImage, matching: .images) {
-                    if let imageData, let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 200)
-                    } else {
-                        Label("Select Bill Image", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    }
-                }
-            } header: {
-                Text("Bill Image")
-            }
-
             // Restaurant Details
             Section("Restaurant Details") {
                 TextField("Restaurant Name", text: $restaurantName)
             }
 
-            // Participants Section
+            // Participants
             Section {
                 if friendsViewModel.isLoading {
                     HStack {
@@ -83,6 +67,56 @@ struct UploadBillView: View {
                 Text("You will be automatically added")
             }
 
+            // Items
+            Section {
+                ForEach(items.indices, id: \.self) { index in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            TextField("Item name", text: $items[index].name)
+
+                            Button(role: .destructive) {
+                                items.remove(at: index)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                            }
+                        }
+
+                        HStack {
+                            Stepper("Qty: \(items[index].quantity)", value: $items[index].quantity, in: 1...99)
+                                .font(.subheadline)
+
+                            Spacer()
+
+                            TextField("Price", value: $items[index].price, format: .currency(code: "USD"))
+                                .keyboardType(.decimalPad)
+                                .frame(width: 100)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Button {
+                    items.append(ManualBillItem())
+                } label: {
+                    Label("Add Item", systemImage: "plus.circle.fill")
+                }
+            } header: {
+                Text("Items")
+            } footer: {
+                if !items.isEmpty {
+                    HStack {
+                        Text("Total")
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Text("$\(totalAmount, specifier: "%.2f")")
+                            .fontWeight(.bold)
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+
             // Error Message
             if let errorMessage {
                 Section {
@@ -92,63 +126,61 @@ struct UploadBillView: View {
                 }
             }
 
-            // Upload Button
+            // Create Button
             Section {
                 Button {
                     Task {
-                        await uploadBill()
+                        await createBill()
                     }
                 } label: {
                     HStack {
                         Spacer()
-                        if isUploading {
+                        if isCreating {
                             ProgressView()
                         } else {
-                            Text("Upload Bill")
+                            Text("Create Bill")
                                 .fontWeight(.semibold)
                         }
                         Spacer()
                     }
                 }
-                .disabled(!canUpload || isUploading)
+                .disabled(!canCreate || isCreating)
             }
         }
         .task {
             await friendsViewModel.loadFriends()
         }
-        .onChange(of: selectedImage) { _, newValue in
-            Task {
-                if let data = try? await newValue?.loadTransferable(type: Data.self) {
-                    imageData = data
-                }
-            }
-        }
     }
 
-    private func uploadBill() async {
-        guard let imageData else { return }
-
-        isUploading = true
+    private func createBill() async {
+        isCreating = true
         errorMessage = nil
 
         do {
             let participantIds = Array(selectedParticipants)
-            // Default to restaurant type
-            _ = try await APIService.shared.uploadBill(
-                image: imageData,
-                participants: participantIds,
-                restaurantName: restaurantName,
-                restaurantType: "restaurant"
-            )
+            let billItems = items.map { item in
+                BillItem(id: UUID().uuidString, name: item.name, quantity: item.quantity, cost: item.price)
+            }
+
+            // TODO: Call API to create manual bill
+            // For now, just simulate success
+            try await Task.sleep(nanoseconds: 1_000_000_000)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
         }
 
-        isUploading = false
+        isCreating = false
     }
 }
 
+struct ManualBillItem: Identifiable {
+    let id = UUID()
+    var name: String = ""
+    var quantity: Int = 1
+    var price: Double = 0.0
+}
+
 #Preview {
-    UploadBillView()
+    ManualEntryView()
 }
