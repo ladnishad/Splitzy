@@ -19,153 +19,183 @@ struct ItemClaimView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                if bill.items.isEmpty {
-                    ContentUnavailableView(
-                        "No Items",
-                        systemImage: "cart",
-                        description: Text("This bill doesn't have any items yet")
+            contentView
+                .navigationTitle("Claim Your Items")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+                }
+                .sheet(item: $selectedItem) { item in
+                    ClaimItemSheet(
+                        item: item,
+                        maxQuantity: getMaxQuantityToClaim(for: item),
+                        onClaim: { quantity in
+                            Task {
+                                await claimItem(item: item, quantity: quantity)
+                            }
+                        }
                     )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            // My Total Card at top
-                            VStack(spacing: 12) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Your Total")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                        Text("$\(myTotal, specifier: "%.2f")")
-                                            .font(.system(.largeTitle, design: .rounded))
-                                            .fontWeight(.bold)
-                                            .foregroundStyle(.blue)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "dollarsign.circle.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundStyle(.blue.gradient)
-                                }
-                                .padding()
-                                .background(.blue.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                            }
-                            .padding(.horizontal)
-
-                            // Items
-                            VStack(spacing: 16) {
-                                ForEach(bill.items) { item in
-                                    ItemClaimCard(
-                                        item: item,
-                                        bill: bill,
-                                        currentUserId: currentUserId,
-                                        onClaim: {
-                                            selectedItem = item
-                                            quantityToClaim = min(1, getMaxQuantityToClaim(for: item))
-                                        },
-                                        onRemoveClaim: { claim in
-                                            Task { await removeClaim(claim) }
-                                        }
-                                    )
-                                }
-                            }
-                            .padding(.horizontal)
-
-                            // All Participants Summary
-                            if !bill.shares.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Everyone's Share")
-                                        .font(.headline)
-                                        .padding(.horizontal)
-
-                                    VStack(spacing: 0) {
-                                        ForEach(bill.shares) { share in
-                                            HStack {
-                                                HStack(spacing: 12) {
-                                                    ZStack {
-                                                        Circle()
-                                                            .fill(share.participant.id == currentUserId ? .blue.gradient : .gray.gradient)
-                                                            .frame(width: 40, height: 40)
-
-                                                        Text(String(share.participant.name.prefix(1)))
-                                                            .font(.headline)
-                                                            .foregroundStyle(.white)
-                                                    }
-
-                                                    VStack(alignment: .leading, spacing: 2) {
-                                                        Text(share.participant.name)
-                                                            .font(.body)
-                                                            .fontWeight(share.participant.id == currentUserId ? .semibold : .regular)
-                                                        if share.participant.id == currentUserId {
-                                                            Text("You")
-                                                                .font(.caption)
-                                                                .foregroundStyle(.blue)
-                                                        }
-                                                    }
-                                                }
-
-                                                Spacer()
-
-                                                Text("$\(share.amount, specifier: "%.2f")")
-                                                    .font(.headline)
-                                                    .foregroundStyle(share.amount > 0 ? .primary : .secondary)
-                                            }
-                                            .padding()
-                                            .background(share.participant.id == currentUserId ? Color.blue.opacity(0.05) : Color.clear)
-
-                                            if share.id != bill.shares.last?.id {
-                                                Divider()
-                                                    .padding(.leading, 68)
-                                            }
-                                        }
-                                    }
-                                    .background(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
-                                }
-                                .padding(.horizontal)
-                            }
-
-                            // Error message
-                            if let errorMessage {
-                                HStack {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundStyle(.red)
-                                    Text(errorMessage)
-                                        .font(.caption)
-                                        .foregroundStyle(.red)
-                                }
-                                .padding()
-                                .background(.red.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .padding(.horizontal)
-                            }
-                        }
-                        .padding(.vertical)
-                    }
-                    .background(Color(.systemGroupedBackground))
                 }
+        }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if bill.items.isEmpty {
+            emptyStateView
+        } else {
+            mainScrollView
+        }
+    }
+
+    private var emptyStateView: some View {
+        ContentUnavailableView(
+            "No Items",
+            systemImage: "cart",
+            description: Text("This bill doesn't have any items yet")
+        )
+    }
+
+    private var mainScrollView: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                totalCard
+                itemsList
+                sharesSection
+                errorSection
             }
-            .navigationTitle("Claim Your Items")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
+            .padding(.vertical)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
+    private var totalCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your Total")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("$\(myTotal, specifier: "%.2f")")
+                        .font(.system(.largeTitle, design: .rounded))
+                        .fontWeight(.bold)
+                        .foregroundStyle(.blue)
                 }
+                Spacer()
+                Image(systemName: "dollarsign.circle.fill")
+                    .font(.system(size: 50))
+                    .foregroundStyle(.blue.gradient)
             }
-            .sheet(item: $selectedItem) { item in
-                ClaimItemSheet(
+            .padding()
+            .background(.blue.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .padding(.horizontal)
+    }
+
+    private var itemsList: some View {
+        VStack(spacing: 16) {
+            ForEach(bill.items) { item in
+                ItemClaimCard(
                     item: item,
-                    maxQuantity: getMaxQuantityToClaim(for: item),
-                    onClaim: { quantity in
-                        Task {
-                            await claimItem(item: item, quantity: quantity)
-                        }
+                    bill: bill,
+                    currentUserId: currentUserId,
+                    onClaim: {
+                        selectedItem = item
+                        quantityToClaim = min(1, getMaxQuantityToClaim(for: item))
+                    },
+                    onRemoveClaim: { claim in
+                        Task { await removeClaim(claim) }
                     }
                 )
             }
+        }
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var sharesSection: some View {
+        if !bill.shares.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Everyone's Share")
+                    .font(.headline)
+                    .padding(.horizontal)
+
+                sharesList
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    private var sharesList: some View {
+        VStack(spacing: 0) {
+            ForEach(bill.shares) { share in
+                shareRow(for: share)
+
+                if share.id != bill.shares.last?.id {
+                    Divider()
+                        .padding(.leading, 68)
+                }
+            }
+        }
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+
+    private func shareRow(for share: BillShare) -> some View {
+        HStack {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(share.participant.id == currentUserId ? .blue.gradient : .gray.gradient)
+                        .frame(width: 40, height: 40)
+
+                    Text(String(share.participant.name.prefix(1)))
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(share.participant.name)
+                        .font(.body)
+                        .fontWeight(share.participant.id == currentUserId ? .semibold : .regular)
+                    if share.participant.id == currentUserId {
+                        Text("You")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Text("$\(share.amount, specifier: "%.2f")")
+                .font(.headline)
+                .foregroundStyle(share.amount > 0 ? .primary : .secondary)
+        }
+        .padding()
+        .background(share.participant.id == currentUserId ? Color.blue.opacity(0.05) : Color.clear)
+    }
+
+    @ViewBuilder
+    private var errorSection: some View {
+        if let errorMessage {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+            .padding()
+            .background(.red.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal)
         }
     }
 
