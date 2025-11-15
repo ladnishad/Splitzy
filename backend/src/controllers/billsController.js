@@ -39,7 +39,7 @@ const createManualBill = async (req, res) => {
     bill.calculateTotal();
     await bill.save();
 
-    await bill.populate('uploadedBy participants', 'name email preferences');
+    await bill.populate('uploadedBy participants', '_id name email preferences');
 
     res.status(201).json({
       success: true,
@@ -92,7 +92,7 @@ const uploadBill = async (req, res) => {
       }
     });
 
-    await bill.populate('uploadedBy participants', 'name email preferences');
+    await bill.populate('uploadedBy participants', '_id name email preferences');
 
     res.status(201).json({
       success: true,
@@ -114,7 +114,7 @@ const getBills = async (req, res) => {
     const bills = await Bill.find({
       participants: req.user.id
     })
-    .populate('uploadedBy participants', 'name email preferences')
+    .populate('uploadedBy participants', '_id name email preferences')
     .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -135,7 +135,7 @@ const getBills = async (req, res) => {
 const getBill = async (req, res) => {
   try {
     const bill = await Bill.findById(req.params.id)
-      .populate('uploadedBy participants', 'name email preferences');
+      .populate('uploadedBy participants', '_id name email preferences');
 
     if (!bill) {
       return res.status(404).json({
@@ -197,7 +197,7 @@ const updateBillItems = async (req, res) => {
     bill.status = 'processed';
 
     await bill.save();
-    await bill.populate('uploadedBy participants', 'name email preferences');
+    await bill.populate('uploadedBy participants', '_id name email preferences');
 
     res.status(200).json({
       success: true,
@@ -280,7 +280,7 @@ const setAssignmentMode = async (req, res) => {
 
     bill.assignmentMode = mode;
     await bill.save();
-    await bill.populate('uploadedBy participants', 'name email preferences');
+    await bill.populate('uploadedBy participants', '_id name email preferences');
 
     res.status(200).json({
       success: true,
@@ -371,7 +371,7 @@ const assignItem = async (req, res) => {
     // Recalculate shares
     bill.calculateShares();
     await bill.save();
-    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', 'name email preferences');
+    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', '_id name email preferences');
 
     res.status(200).json({
       success: true,
@@ -454,7 +454,7 @@ const claimItem = async (req, res) => {
     // Recalculate shares
     bill.calculateShares();
     await bill.save();
-    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', 'name email preferences');
+    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', '_id name email preferences');
 
     res.status(200).json({
       success: true,
@@ -506,7 +506,7 @@ const removeAssignment = async (req, res) => {
     assignment.deleteOne();
     bill.calculateShares();
     await bill.save();
-    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', 'name email preferences');
+    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', '_id name email preferences');
 
     res.status(200).json({
       success: true,
@@ -552,7 +552,7 @@ const finalizeBill = async (req, res) => {
     bill.status = 'finalized';
     bill.calculateShares();
     await bill.save();
-    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', 'name email preferences');
+    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant', '_id name email preferences');
 
     res.status(200).json({
       success: true,
