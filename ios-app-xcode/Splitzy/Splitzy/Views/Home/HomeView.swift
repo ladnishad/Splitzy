@@ -114,6 +114,7 @@ struct BillRowView: View {
         case .processing: return .blue
         case .processed: return .green
         case .split: return .purple
+        case .finalized: return .indigo
         }
     }
 }
