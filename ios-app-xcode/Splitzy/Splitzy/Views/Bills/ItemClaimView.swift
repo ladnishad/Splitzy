@@ -276,7 +276,7 @@ struct ClaimItemSheet: View {
     ItemClaimView(
         bill: .constant(Bill(
             id: "1",
-            uploadedBy: User(id: "1", name: "John", email: "john@example.com", preferences: UserPreferences(drinksAlcohol: true, eatsMeat: true, meatTypes: [])),
+            uploadedBy: User(id: "1", email: "john@example.com", name: "John", preferences: UserPreferences(drinksAlcohol: true, eatsMeat: true, meatTypes: [])),
             imageUrl: "",
             participants: [],
             items: [],
