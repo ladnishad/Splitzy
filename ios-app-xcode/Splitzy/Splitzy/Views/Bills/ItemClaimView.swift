@@ -152,7 +152,7 @@ struct ItemClaimView: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(share.participant.id == currentUserId ? .blue.gradient : .gray.gradient)
+                        .fill(share.participant.id == currentUserId ? .blue.gradient : Color.gray.opacity(0.3))
                         .frame(width: 40, height: 40)
 
                     Text(String(share.participant.name.prefix(1)))

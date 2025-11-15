@@ -444,166 +444,10 @@ struct AssignItemSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Item Info Card
-                VStack(spacing: 16) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(item.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
-
-                            Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("Available")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(maxQuantity)")
-                            .fontWeight(.semibold)
-                            .font(.title3)
-                            .foregroundStyle(.green)
-                    }
-                }
-                .padding()
-                .background(.gray.opacity(0.05))
-
-                // Participants Selection
-                ScrollView {
-                    VStack(spacing: 0) {
-                        Text("Assign to")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-
-                        ForEach(bill.participants) { participant in
-                            Button {
-                                selectedParticipant = participant
-                            } label: {
-                                HStack(spacing: 12) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(selectedParticipant?.id == participant.id ? .blue.gradient : .gray.opacity(0.2))
-                                            .frame(width: 44, height: 44)
-
-                                        Text(String(participant.name.prefix(1)))
-                                            .font(.headline)
-                                            .foregroundStyle(selectedParticipant?.id == participant.id ? .white : .gray)
-                                    }
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(participant.name)
-                                            .font(.body)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(.primary)
-                                        Text(participant.email)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    if selectedParticipant?.id == participant.id {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.blue)
-                                            .font(.title3)
-                                    }
-                                }
-                                .padding()
-                                .background(selectedParticipant?.id == participant.id ? .blue.opacity(0.05) : .clear)
-                            }
-
-                            if participant.id != bill.participants.last?.id {
-                                Divider()
-                                    .padding(.leading, 68)
-                            }
-                        }
-                    }
-                }
-
-                // Quantity Picker
-                if selectedParticipant != nil {
-                    VStack(spacing: 16) {
-                        Divider()
-
-                        HStack(spacing: 20) {
-                            Button {
-                                if quantity > 1 {
-                                    quantity -= 1
-                                }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 36))
-                                    .foregroundStyle(quantity > 1 ? .blue : .gray)
-                            }
-                            .disabled(quantity <= 1)
-
-                            VStack(spacing: 4) {
-                                Text("Quantity")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("\(quantity)")
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.blue)
-                            }
-                            .frame(minWidth: 80)
-
-                            Button {
-                                if quantity < maxQuantity {
-                                    quantity += 1
-                                }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 36))
-                                    .foregroundStyle(quantity < maxQuantity ? .blue : .gray)
-                            }
-                            .disabled(quantity >= maxQuantity)
-                        }
-                        .padding(.vertical)
-
-                        // Total Display
-                        HStack {
-                            Text("Total")
-                            Spacer()
-                            Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.blue)
-                        }
-                        .padding()
-                        .background(.blue.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .padding()
-                }
-
-                // Assign Button
-                if selectedParticipant != nil {
-                    Button {
-                        if let participant = selectedParticipant {
-                            onAssign(participant, quantity)
-                            dismiss()
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "person.badge.plus.fill")
-                            Text("Assign \(quantity) to \(selectedParticipant?.name ?? "")")
-                        }
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.blue.gradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    .padding()
-                }
+                itemInfoCard
+                participantsList
+                quantitySection
+                assignButton
             }
             .navigationTitle("Assign Item")
             .navigationBarTitleDisplayMode(.inline)
@@ -616,6 +460,176 @@ struct AssignItemSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    private var itemInfoCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(item.name)
+                        .font(.title2)
+                        .fontWeight(.bold)
+
+                    Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            Divider()
+
+            HStack {
+                Text("Available")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(maxQuantity)")
+                    .fontWeight(.semibold)
+                    .font(.title3)
+                    .foregroundStyle(.green)
+            }
+        }
+        .padding()
+        .background(.gray.opacity(0.05))
+    }
+
+    private var participantsList: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                Text("Assign to")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+
+                ForEach(bill.participants) { participant in
+                    participantRow(participant)
+
+                    if participant.id != bill.participants.last?.id {
+                        Divider()
+                            .padding(.leading, 68)
+                    }
+                }
+            }
+        }
+    }
+
+    private func participantRow(_ participant: User) -> some View {
+        Button {
+            selectedParticipant = participant
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(selectedParticipant?.id == participant.id ? .blue.gradient : .gray.opacity(0.2))
+                        .frame(width: 44, height: 44)
+
+                    Text(String(participant.name.prefix(1)))
+                        .font(.headline)
+                        .foregroundStyle(selectedParticipant?.id == participant.id ? .white : .gray)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(participant.name)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                    Text(participant.email)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if selectedParticipant?.id == participant.id {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.blue)
+                        .font(.title3)
+                }
+            }
+            .padding()
+            .background(selectedParticipant?.id == participant.id ? .blue.opacity(0.05) : .clear)
+        }
+    }
+
+    @ViewBuilder
+    private var quantitySection: some View {
+        if selectedParticipant != nil {
+            VStack(spacing: 16) {
+                Divider()
+
+                HStack(spacing: 20) {
+                    Button {
+                        if quantity > 1 {
+                            quantity -= 1
+                        }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(quantity > 1 ? .blue : .gray)
+                    }
+                    .disabled(quantity <= 1)
+
+                    VStack(spacing: 4) {
+                        Text("Quantity")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(quantity)")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundStyle(.blue)
+                    }
+                    .frame(minWidth: 80)
+
+                    Button {
+                        if quantity < maxQuantity {
+                            quantity += 1
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(quantity < maxQuantity ? .blue : .gray)
+                    }
+                    .disabled(quantity >= maxQuantity)
+                }
+                .padding(.vertical)
+
+                HStack {
+                    Text("Total")
+                    Spacer()
+                    Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.blue)
+                }
+                .padding()
+                .background(.blue.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding()
+        }
+    }
+
+    @ViewBuilder
+    private var assignButton: some View {
+        if selectedParticipant != nil {
+            Button {
+                if let participant = selectedParticipant {
+                    onAssign(participant, quantity)
+                    dismiss()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "person.badge.plus.fill")
+                    Text("Assign \(quantity) to \(selectedParticipant?.name ?? "")")
+                }
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(.blue.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .padding()
+        }
     }
 }
 
