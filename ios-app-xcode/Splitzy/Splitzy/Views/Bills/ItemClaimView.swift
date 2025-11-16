@@ -458,7 +458,7 @@ struct ClaimItemModal: View {
     @State private var quantity: Int = 1
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 28) {
             // Header - Item name and price
             HStack(alignment: .top) {
                 Text(item.name)
@@ -476,41 +476,40 @@ struct ClaimItemModal: View {
 
             Divider()
 
-            // Quantity Counter - "X out of Y" format
-            VStack(spacing: 16) {
-                Text("\(quantity) out of \(maxQuantity)")
-                    .font(.title3)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 20) {
-                    Button {
-                        if quantity > 1 {
-                            quantity -= 1
-                        }
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(quantity > 1 ? .blue : .gray.opacity(0.3))
+            // Quantity Counter with integrated "X out of Y"
+            HStack(spacing: 20) {
+                Button {
+                    if quantity > 1 {
+                        quantity -= 1
                     }
-                    .disabled(quantity <= 1)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(quantity > 1 ? .blue : .gray.opacity(0.3))
+                }
+                .disabled(quantity <= 1)
 
+                VStack(spacing: 4) {
                     Text("\(quantity)")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundStyle(.blue)
-                        .frame(minWidth: 70)
 
-                    Button {
-                        if quantity < maxQuantity {
-                            quantity += 1
-                        }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(quantity < maxQuantity ? .blue : .gray.opacity(0.3))
-                    }
-                    .disabled(quantity >= maxQuantity)
+                    Text("out of \(maxQuantity)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+                .frame(minWidth: 90)
+
+                Button {
+                    if quantity < maxQuantity {
+                        quantity += 1
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(quantity < maxQuantity ? .blue : .gray.opacity(0.3))
+                }
+                .disabled(quantity >= maxQuantity)
             }
 
             // Total
@@ -547,8 +546,8 @@ struct ClaimItemModal: View {
             .disabled(maxQuantity < 1)
         }
         .padding(.horizontal, 24)
-        .padding(.top, 24)
-        .padding(.bottom, 20)
+        .padding(.top, 32)
+        .padding(.bottom, 24)
     }
 }
 
