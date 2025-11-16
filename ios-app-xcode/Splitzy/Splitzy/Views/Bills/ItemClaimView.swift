@@ -19,27 +19,75 @@ struct ItemClaimView: View {
 
     var body: some View {
         NavigationStack {
-            contentView
-                .navigationTitle("Claim Your Items")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            dismiss()
+            ZStack(alignment: .bottom) {
+                contentView
+
+                // Floating "Finish Claiming" button
+                VStack(spacing: 0) {
+                    // Shadow/gradient separator
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 8)
+
+                    VStack(spacing: 12) {
+                        // Show current total
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Your Total")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text("$\(myTotal, specifier: "%.2f")")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.blue)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text("Finish Claiming")
+                                }
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(.blue.gradient)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .padding()
+                    }
+                    .background(.ultraThinMaterial)
+                }
+            }
+            .navigationTitle("Claim Your Items")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
                     }
                 }
-                .sheet(item: $selectedItem) { item in
-                    ClaimItemSheet(
-                        item: item,
-                        maxQuantity: getMaxQuantityToClaim(for: item),
-                        onClaim: { quantity in
-                            Task {
-                                await claimItem(item: item, quantity: quantity)
-                            }
+            }
+            .sheet(item: $selectedItem) { item in
+                ClaimItemSheet(
+                    item: item,
+                    maxQuantity: getMaxQuantityToClaim(for: item),
+                    onClaim: { quantity in
+                        Task {
+                            await claimItem(item: item, quantity: quantity)
                         }
-                    )
-                }
+                    }
+                )
+            }
         }
     }
 
@@ -63,12 +111,12 @@ struct ItemClaimView: View {
     private var mainScrollView: some View {
         ScrollView {
             VStack(spacing: 20) {
-                totalCard
                 itemsList
                 sharesSection
                 errorSection
             }
             .padding(.vertical)
+            .padding(.bottom, 100) // Add padding for floating button
         }
         .background(Color(.systemGroupedBackground))
     }

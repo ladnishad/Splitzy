@@ -219,24 +219,30 @@ struct ManualEntryView: View {
                 BillItem(id: nil, name: item.name, quantity: item.quantity, cost: item.price)
             }
 
+            // Create the bill
             let response = try await APIService.shared.createManualBill(
                 restaurantName: restaurantName,
                 participants: participantIds,
                 items: billItems
             )
 
-            // Set assignment mode
-            _ = try await APIService.shared.setAssignmentMode(
+            // Set assignment mode and wait for it to complete
+            let updatedBill = try await APIService.shared.setAssignmentMode(
                 billId: response.data.id,
                 mode: assignmentMode
             )
 
-            dismiss()
+            // Verify assignment mode was set
+            if updatedBill.data.assignmentMode == assignmentMode {
+                dismiss()
+            } else {
+                errorMessage = "Failed to set assignment mode"
+                isCreating = false
+            }
         } catch {
             errorMessage = error.localizedDescription
+            isCreating = false
         }
-
-        isCreating = false
     }
 }
 

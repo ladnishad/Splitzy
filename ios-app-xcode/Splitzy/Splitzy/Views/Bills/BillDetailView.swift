@@ -9,54 +9,61 @@ struct BillDetailView: View {
     @State private var currentUserId: String?
     @Environment(\.dismiss) var dismiss
 
+    private var showFloatingClaimButton: Bool {
+        guard let userId = currentUserId else { return false }
+        let isParticipant = bill.participants.contains { $0.id == userId }
+        return bill.assignmentMode == .selfSelect &&
+               bill.status != .finalized &&
+               isParticipant
+    }
+
     var body: some View {
-        List {
-            // Bill Image Section
-            Section {
-                AsyncImage(url: URL(string: "http://localhost:3000\(bill.imageUrl)")) { image in
-                    image
-                        .resizable()
-                        .scaledToFit()
-                } placeholder: {
-                    ProgressView()
-                }
-                .frame(maxWidth: .infinity)
-                .listRowInsets(EdgeInsets())
-            }
-
-            // Restaurant Info
-            Section("Restaurant Details") {
-                LabeledContent("Name", value: bill.restaurant.name)
-                LabeledContent("Type", value: bill.restaurant.type.displayName)
-                LabeledContent("Status", value: bill.status.displayName)
-            }
-
-            // DEBUG: Show raw assignment mode value
-            Section("Debug Info") {
-                LabeledContent("Assignment Mode", value: bill.assignmentMode.rawValue)
-                LabeledContent("Current User ID", value: currentUserId ?? "nil")
-                LabeledContent("Is Uploader", value: String(isUploader))
-                LabeledContent("Participants Count", value: String(bill.participants.count))
-                if let userId = currentUserId {
-                    let isParticipant = bill.participants.contains { $0.id == userId }
-                    LabeledContent("Is Participant", value: String(isParticipant))
-                }
-            }
-
-            // Assignment Mode & Actions
-            if bill.assignmentMode != .notSet {
+        ZStack(alignment: .bottom) {
+            List {
+                // Bill Image Section
                 Section {
-                    HStack {
-                        Text("Split Mode")
-                        Spacer()
-                        Text(bill.assignmentMode.displayName)
-                            .foregroundStyle(.secondary)
+                    AsyncImage(url: URL(string: "http://localhost:3000\(bill.imageUrl)")) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    } placeholder: {
+                        ProgressView()
                     }
+                    .frame(maxWidth: .infinity)
+                    .listRowInsets(EdgeInsets())
+                }
 
-                    // Show appropriate action button based on mode
-                    if bill.status != .finalized {
-                        if bill.assignmentMode == .uploaderAssigns && isUploader {
-                            // Only uploader can assign in uploader_assigns mode
+                // Restaurant Info
+                Section("Restaurant Details") {
+                    LabeledContent("Name", value: bill.restaurant.name)
+                    LabeledContent("Type", value: bill.restaurant.type.displayName)
+                    LabeledContent("Status", value: bill.status.displayName)
+                }
+
+                // DEBUG: Show raw assignment mode value
+                Section("Debug Info") {
+                    LabeledContent("Assignment Mode", value: bill.assignmentMode.rawValue)
+                    LabeledContent("Current User ID", value: currentUserId ?? "nil")
+                    LabeledContent("Is Uploader", value: String(isUploader))
+                    LabeledContent("Participants Count", value: String(bill.participants.count))
+                    if let userId = currentUserId {
+                        let isParticipant = bill.participants.contains { $0.id == userId }
+                        LabeledContent("Is Participant", value: String(isParticipant))
+                    }
+                }
+
+                // Assignment Mode
+                if bill.assignmentMode != .notSet {
+                    Section {
+                        HStack {
+                            Text("Split Mode")
+                            Spacer()
+                            Text(bill.assignmentMode.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        // Show assign button for uploader in uploader_assigns mode
+                        if bill.status != .finalized && bill.assignmentMode == .uploaderAssigns && isUploader {
                             Button {
                                 Task {
                                     await refreshBill()
@@ -65,22 +72,11 @@ struct BillDetailView: View {
                             } label: {
                                 Label("Assign Items", systemImage: "person.badge.plus")
                             }
-                        } else if bill.assignmentMode == .selfSelect && currentUserId != nil {
-                            // Everyone including uploader can claim in self_select mode
-                            Button {
-                                Task {
-                                    await refreshBill()
-                                    showClaimView = true
-                                }
-                            } label: {
-                                Label("Claim Items", systemImage: "hand.raised")
-                            }
                         }
+                    } header: {
+                        Text("Bill Splitting")
                     }
-                } header: {
-                    Text("Bill Splitting")
                 }
-            }
 
             // Shares - Who owes what
             if !bill.shares.isEmpty {
@@ -182,7 +178,52 @@ struct BillDetailView: View {
                     )
                 }
             }
+            // Add padding at bottom when floating button is visible
+            if showFloatingClaimButton {
+                Section {
+                    Color.clear
+                        .frame(height: 80)
+                        .listRowBackground(Color.clear)
+                }
+            }
         }
+
+        // Floating Claim Button
+        if showFloatingClaimButton {
+            VStack(spacing: 0) {
+                // Shadow/gradient separator
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.05)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 8)
+
+                Button {
+                    Task {
+                        await refreshBill()
+                        showClaimView = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "hand.raised.fill")
+                            .font(.title3)
+                        Text("Claim Your Items")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(.blue.gradient)
+                }
+                .buttonStyle(.plain)
+            }
+            .background(.ultraThinMaterial)
+        }
+    }
         .navigationTitle("Bill Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
