@@ -16,7 +16,7 @@ struct ManualEntryView: View {
     }
 
     var canCreate: Bool {
-        !restaurantName.isEmpty && !selectedParticipants.isEmpty && !items.isEmpty
+        !restaurantName.isEmpty && !items.isEmpty
     }
 
     var body: some View {
@@ -154,7 +154,7 @@ struct ManualEntryView: View {
             } header: {
                 Text("Participants")
             } footer: {
-                Text("You will be automatically added")
+                Text("You will be automatically added as a participant. Select friends to split with (optional).")
             }
 
             // Assignment Mode
