@@ -77,8 +77,8 @@ struct ItemClaimView: View {
                     }
                 }
             }
-            .popover(item: $selectedItem) { item in
-                ClaimItemPopover(
+            .sheet(item: $selectedItem) { item in
+                ClaimItemModal(
                     item: item,
                     maxQuantity: getMaxQuantityToClaim(for: item),
                     onClaim: { quantity in
@@ -87,7 +87,8 @@ struct ItemClaimView: View {
                         }
                     }
                 )
-                .presentationCompactAdaptation(.popover)
+                .presentationDetents([.height(380)])
+                .presentationDragIndicator(.visible)
             }
         }
     }
@@ -447,8 +448,8 @@ struct ItemClaimCard: View {
     }
 }
 
-// Compact popover for claiming an item
-struct ClaimItemPopover: View {
+// Centered modal for claiming an item
+struct ClaimItemModal: View {
     let item: BillItem
     let maxQuantity: Int
     let onClaim: (Int) -> Void
@@ -457,11 +458,12 @@ struct ClaimItemPopover: View {
     @State private var quantity: Int = 1
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             // Header
             VStack(spacing: 8) {
                 Text(item.name)
-                    .font(.headline)
+                    .font(.title3)
+                    .fontWeight(.semibold)
                     .multilineTextAlignment(.center)
 
                 HStack(spacing: 16) {
@@ -481,27 +483,27 @@ struct ClaimItemPopover: View {
             Divider()
 
             // Quantity Picker
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 Text("Quantity")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                HStack(spacing: 16) {
+                HStack(spacing: 20) {
                     Button {
                         if quantity > 1 {
                             quantity -= 1
                         }
                     } label: {
                         Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 32))
+                            .font(.system(size: 36))
                             .foregroundStyle(quantity > 1 ? .blue : .gray.opacity(0.3))
                     }
                     .disabled(quantity <= 1)
 
                     Text("\(quantity)")
-                        .font(.system(size: 34, weight: .semibold, design: .rounded))
+                        .font(.system(size: 40, weight: .semibold, design: .rounded))
                         .foregroundStyle(.blue)
-                        .frame(minWidth: 50)
+                        .frame(minWidth: 60)
 
                     Button {
                         if quantity < maxQuantity {
@@ -509,7 +511,7 @@ struct ClaimItemPopover: View {
                         }
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 32))
+                            .font(.system(size: 36))
                             .foregroundStyle(quantity < maxQuantity ? .blue : .gray.opacity(0.3))
                     }
                     .disabled(quantity >= maxQuantity)
@@ -517,40 +519,41 @@ struct ClaimItemPopover: View {
             }
 
             // Total
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text("Total")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(.blue)
             }
-            .padding(.vertical, 8)
+            .padding()
             .frame(maxWidth: .infinity)
-            .background(.blue.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .background(.blue.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             // Claim Button
             Button {
                 onClaim(quantity)
                 dismiss()
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "hand.raised.fill")
-                    Text("Claim")
+                    Text("Claim \(quantity) Item\(quantity > 1 ? "s" : "")")
                 }
                 .font(.headline)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
                 .background(.blue.gradient)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .disabled(maxQuantity < 1)
         }
-        .padding(20)
-        .frame(width: 280)
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 20)
     }
 }
 
