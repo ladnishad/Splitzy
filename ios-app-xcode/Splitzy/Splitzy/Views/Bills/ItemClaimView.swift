@@ -459,33 +459,28 @@ struct ClaimItemModal: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
+            // Header - Item name and price
+            HStack(alignment: .top) {
                 Text(item.name)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .multilineTextAlignment(.leading)
+
+                Spacer()
+
+                Text("$\(item.cost, specifier: "%.2f")")
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .multilineTextAlignment(.center)
-
-                HStack(spacing: 16) {
-                    Label("$\(item.cost, specifier: "%.2f")", systemImage: "dollarsign.circle.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("•")
-                        .foregroundStyle(.secondary)
-
-                    Text("\(maxQuantity) available")
-                        .font(.subheadline)
-                        .foregroundStyle(.green)
-                }
+                    .foregroundStyle(.secondary)
             }
 
             Divider()
 
-            // Quantity Picker
+            // Quantity Counter - "X out of Y" format
             VStack(spacing: 16) {
-                Text("Quantity")
-                    .font(.subheadline)
+                Text("\(quantity) out of \(maxQuantity)")
+                    .font(.title3)
+                    .fontWeight(.medium)
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 20) {
@@ -495,15 +490,15 @@ struct ClaimItemModal: View {
                         }
                     } label: {
                         Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 36))
+                            .font(.system(size: 44))
                             .foregroundStyle(quantity > 1 ? .blue : .gray.opacity(0.3))
                     }
                     .disabled(quantity <= 1)
 
                     Text("\(quantity)")
-                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundStyle(.blue)
-                        .frame(minWidth: 60)
+                        .frame(minWidth: 70)
 
                     Button {
                         if quantity < maxQuantity {
@@ -511,7 +506,7 @@ struct ClaimItemModal: View {
                         }
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 36))
+                            .font(.system(size: 44))
                             .foregroundStyle(quantity < maxQuantity ? .blue : .gray.opacity(0.3))
                     }
                     .disabled(quantity >= maxQuantity)
@@ -525,7 +520,7 @@ struct ClaimItemModal: View {
                     .foregroundStyle(.secondary)
 
                 Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundStyle(.blue)
             }
             .padding()
