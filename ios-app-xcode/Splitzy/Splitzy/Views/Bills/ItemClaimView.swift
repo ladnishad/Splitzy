@@ -653,6 +653,7 @@ struct ClaimItemModal: View {
             assignmentMode: .selfSelect,
             itemAssignments: [],
             shares: [],
+            participantsFinished: [],
             restaurant: Restaurant(name: "Test", type: .restaurant),
             createdAt: ""
         )),
