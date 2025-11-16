@@ -111,7 +111,7 @@ const login = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('friends', 'name email');
+    const user = await User.findById(req.user.id).populate('friends', '_id name email preferences');
 
     res.status(200).json({
       success: true,

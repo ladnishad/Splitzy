@@ -10,17 +10,8 @@ struct BillDetailView: View {
     @State private var userLoadError: String?
     @Environment(\.dismiss) var dismiss
 
-    private var showFloatingClaimButton: Bool {
-        guard let userId = currentUserId else { return false }
-        let isParticipant = bill.participants.contains { $0.id == userId }
-        return bill.assignmentMode == .selfSelect &&
-               bill.status != .finalized &&
-               isParticipant
-    }
-
     var body: some View {
-        ZStack(alignment: .bottom) {
-            List {
+        List {
                 // Bill Image Section
                 Section {
                     AsyncImage(url: URL(string: "http://localhost:3000\(bill.imageUrl)")) { image in
@@ -55,7 +46,6 @@ struct BillDetailView: View {
                         let isParticipant = bill.participants.contains { $0.id == userId }
                         LabeledContent("Is Participant", value: String(isParticipant))
                     }
-                    LabeledContent("Show Button", value: String(showFloatingClaimButton))
                 }
 
                 // Assignment Mode
@@ -119,27 +109,60 @@ struct BillDetailView: View {
             // Participants
             Section("Participants") {
                 ForEach(bill.participants) { participant in
-                    HStack {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundStyle(.blue)
+                    VStack(spacing: 0) {
+                        HStack {
+                            Image(systemName: "person.circle.fill")
+                                .foregroundStyle(.blue)
 
-                        VStack(alignment: .leading) {
-                            Text(participant.name)
-                                .font(.body)
-                            Text(participant.email)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            VStack(alignment: .leading) {
+                                Text(participant.name)
+                                    .font(.body)
+                                Text(participant.email)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if participant.id == bill.uploadedBy.id {
+                                Text("Uploader")
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.blue.opacity(0.2))
+                                    .foregroundStyle(.blue)
+                                    .clipShape(Capsule())
+                            }
                         }
 
-                        if participant.id == bill.uploadedBy.id {
-                            Spacer()
-                            Text("Uploader")
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.blue.opacity(0.2))
-                                .foregroundStyle(.blue)
-                                .clipShape(Capsule())
+                        // Show "Claim Items" button for current user in self_select mode
+                        if let userId = currentUserId,
+                           participant.id == userId,
+                           bill.assignmentMode == .selfSelect,
+                           bill.status != .finalized {
+                            Button {
+                                Task {
+                                    await refreshBill()
+                                    showClaimView = true
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "hand.raised.fill")
+                                    Text("Claim Items")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.white)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(.blue.gradient)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 8)
                         }
                     }
                 }
@@ -184,52 +207,7 @@ struct BillDetailView: View {
                     )
                 }
             }
-            // Add padding at bottom when floating button is visible
-            if showFloatingClaimButton {
-                Section {
-                    Color.clear
-                        .frame(height: 80)
-                        .listRowBackground(Color.clear)
-                }
-            }
         }
-
-        // Floating Claim Button
-        if showFloatingClaimButton {
-            VStack(spacing: 0) {
-                // Shadow/gradient separator
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.05)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 8)
-
-                Button {
-                    Task {
-                        await refreshBill()
-                        showClaimView = true
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "hand.raised.fill")
-                            .font(.title3)
-                        Text("Claim Your Items")
-                            .font(.headline)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
-                    .foregroundStyle(.white)
-                    .padding()
-                    .background(.blue.gradient)
-                }
-                .buttonStyle(.plain)
-            }
-            .background(.ultraThinMaterial)
-        }
-    }
         .navigationTitle("Bill Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
