@@ -320,6 +320,26 @@ class APIService: ObservableObject {
 
         return try await performRequest(request)
     }
+
+    func finishClaiming(billId: String) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/\(billId)/finish-claiming", method: "POST") else {
+            throw APIError.invalidURL
+        }
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [:])
+
+        return try await performRequest(request)
+    }
+
+    func unlockClaiming(billId: String) async throws -> BillResponse {
+        guard var request = createRequest(endpoint: "/bills/\(billId)/unlock-claiming", method: "POST") else {
+            throw APIError.invalidURL
+        }
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [:])
+
+        return try await performRequest(request)
+    }
 }
 
 // MARK: - API Errors

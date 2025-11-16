@@ -12,7 +12,9 @@ const {
   assignItem,
   claimItem,
   removeAssignment,
-  finalizeBill
+  finalizeBill,
+  finishClaiming,
+  unlockClaiming
 } = require('../controllers/billsController');
 const { protect } = require('../middleware/auth');
 
@@ -60,6 +62,8 @@ router.put('/:id/assignment-mode', setAssignmentMode);
 router.post('/:id/assign-item', assignItem);
 router.post('/:id/claim-item', claimItem);
 router.delete('/:id/assignments/:assignmentId', removeAssignment);
+router.post('/:id/finish-claiming', finishClaiming);
+router.post('/:id/unlock-claiming', unlockClaiming);
 router.put('/:id/finalize', finalizeBill);
 
 module.exports = router;

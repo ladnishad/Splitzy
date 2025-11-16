@@ -114,7 +114,7 @@ const getBills = async (req, res) => {
     const bills = await Bill.find({
       participants: req.user.id
     })
-    .populate('uploadedBy participants itemAssignments.participant shares.participant', '_id name email preferences')
+    .populate('uploadedBy participants itemAssignments.participant shares.participant participantsFinished', '_id name email preferences')
     .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -135,7 +135,7 @@ const getBills = async (req, res) => {
 const getBill = async (req, res) => {
   try {
     const bill = await Bill.findById(req.params.id)
-      .populate('uploadedBy participants itemAssignments.participant shares.participant', '_id name email preferences');
+      .populate('uploadedBy participants itemAssignments.participant shares.participant participantsFinished', '_id name email preferences');
 
     if (!bill) {
       return res.status(404).json({
@@ -566,6 +566,94 @@ const finalizeBill = async (req, res) => {
   }
 };
 
+// @desc    Mark participant as finished claiming
+// @route   POST /api/bills/:id/finish-claiming
+// @access  Private
+const finishClaiming = async (req, res) => {
+  try {
+    const bill = await Bill.findById(req.params.id);
+
+    if (!bill) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bill not found'
+      });
+    }
+
+    // Verify user is a participant
+    if (!bill.participants.some(p => p.toString() === req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not a participant of this bill'
+      });
+    }
+
+    // Check if already finished
+    if (bill.participantsFinished.some(p => p.toString() === req.user.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already finished claiming'
+      });
+    }
+
+    // Add user to participantsFinished
+    bill.participantsFinished.push(req.user.id);
+    await bill.save();
+    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant participantsFinished', '_id name email preferences');
+
+    res.status(200).json({
+      success: true,
+      data: bill
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Unlock claiming for participant (allow changes)
+// @route   POST /api/bills/:id/unlock-claiming
+// @access  Private
+const unlockClaiming = async (req, res) => {
+  try {
+    const bill = await Bill.findById(req.params.id);
+
+    if (!bill) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bill not found'
+      });
+    }
+
+    // Verify user is a participant
+    if (!bill.participants.some(p => p.toString() === req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not a participant of this bill'
+      });
+    }
+
+    // Remove user from participantsFinished
+    bill.participantsFinished = bill.participantsFinished.filter(
+      p => p.toString() !== req.user.id
+    );
+    await bill.save();
+    await bill.populate('uploadedBy participants itemAssignments.participant shares.participant participantsFinished', '_id name email preferences');
+
+    res.status(200).json({
+      success: true,
+      data: bill
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   createManualBill,
   uploadBill,
@@ -577,5 +665,7 @@ module.exports = {
   assignItem,
   claimItem,
   removeAssignment,
-  finalizeBill
+  finalizeBill,
+  finishClaiming,
+  unlockClaiming
 };

@@ -124,6 +124,14 @@ struct BillDetailView: View {
                                         .font(.caption)
                                         .foregroundStyle(.yellow)
                                 }
+
+                                // Checkmark icon if participant has finished claiming
+                                if bill.assignmentMode == .selfSelect,
+                                   bill.participantsFinished.contains(where: { $0.id == participant.id }) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.green)
+                                }
                             }
 
                             Text(participant.email)

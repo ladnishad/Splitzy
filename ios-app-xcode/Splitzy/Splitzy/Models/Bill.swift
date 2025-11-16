@@ -11,13 +11,14 @@ struct Bill: Identifiable, Codable {
     var assignmentMode: AssignmentMode
     var itemAssignments: [ItemAssignment]
     var shares: [BillShare]
+    var participantsFinished: [User]
     var restaurant: Restaurant
     let createdAt: String
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
         case uploadedBy, imageUrl, participants, items, totalAmount, status
-        case assignmentMode, itemAssignments, shares, restaurant, createdAt
+        case assignmentMode, itemAssignments, shares, participantsFinished, restaurant, createdAt
     }
 }
 

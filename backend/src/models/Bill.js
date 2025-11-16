@@ -77,6 +77,10 @@ const billSchema = new mongoose.Schema({
       default: 0
     }
   }],
+  participantsFinished: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   restaurant: {
     name: String,
     type: {

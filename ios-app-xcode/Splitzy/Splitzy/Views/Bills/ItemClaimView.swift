@@ -9,12 +9,17 @@ struct ItemClaimView: View {
     @State private var quantityToClaim: Int = 1
     @State private var isClaiming = false
     @State private var errorMessage: String?
+    @State private var isProcessing = false
 
     var myTotal: Double {
         guard let myShare = bill.shares.first(where: { $0.participant.id == currentUserId }) else {
             return 0
         }
         return myShare.amount
+    }
+
+    var hasFinishedClaiming: Bool {
+        bill.participantsFinished.contains { $0.id == currentUserId }
     }
 
     var body: some View {
@@ -47,21 +52,57 @@ struct ItemClaimView: View {
 
                             Spacer()
 
-                            Button {
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("Finish Claiming")
+                            if hasFinishedClaiming {
+                                // Show unlock button if user has finished
+                                Button {
+                                    Task {
+                                        await unlockClaiming()
+                                    }
+                                } label: {
+                                    HStack {
+                                        if isProcessing {
+                                            ProgressView()
+                                                .tint(.white)
+                                        } else {
+                                            Image(systemName: "lock.open.fill")
+                                            Text("Unlock to Edit")
+                                        }
+                                    }
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 12)
+                                    .background(.orange.gradient)
+                                    .clipShape(Capsule())
                                 }
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 12)
-                                .background(.blue.gradient)
-                                .clipShape(Capsule())
+                                .buttonStyle(.plain)
+                                .disabled(isProcessing)
+                            } else {
+                                // Show finish button
+                                Button {
+                                    Task {
+                                        await finishClaiming()
+                                    }
+                                } label: {
+                                    HStack {
+                                        if isProcessing {
+                                            ProgressView()
+                                                .tint(.white)
+                                        } else {
+                                            Image(systemName: "checkmark.circle.fill")
+                                            Text("Finish Claiming")
+                                        }
+                                    }
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 12)
+                                    .background(.blue.gradient)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isProcessing)
                             }
-                            .buttonStyle(.plain)
                         }
                         .padding()
                     }
@@ -154,6 +195,7 @@ struct ItemClaimView: View {
                     item: item,
                     bill: bill,
                     currentUserId: currentUserId,
+                    isLocked: hasFinishedClaiming,
                     onClaim: {
                         selectedItem = item
                         quantityToClaim = min(1, getMaxQuantityToClaim(for: item))
@@ -305,6 +347,34 @@ struct ItemClaimView: View {
             errorMessage = error.localizedDescription
         }
     }
+
+    private func finishClaiming() async {
+        isProcessing = true
+        errorMessage = nil
+
+        do {
+            let response = try await APIService.shared.finishClaiming(billId: bill.id)
+            bill = response.data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isProcessing = false
+    }
+
+    private func unlockClaiming() async {
+        isProcessing = true
+        errorMessage = nil
+
+        do {
+            let response = try await APIService.shared.unlockClaiming(billId: bill.id)
+            bill = response.data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isProcessing = false
+    }
 }
 
 // Individual Item Card
@@ -312,6 +382,7 @@ struct ItemClaimCard: View {
     let item: BillItem
     let bill: Bill
     let currentUserId: String
+    let isLocked: Bool
     let onClaim: () -> Void
     let onRemoveClaim: (ItemAssignment) -> Void
 
@@ -339,11 +410,26 @@ struct ItemClaimCard: View {
 
     var body: some View {
         Button {
-            if remainingQuantity > 0 {
+            if remainingQuantity > 0 && !isLocked {
                 onClaim()
             }
         } label: {
             VStack(alignment: .leading, spacing: 16) {
+                // Locked badge
+                if isLocked {
+                    HStack {
+                        Image(systemName: "lock.fill")
+                            .font(.caption2)
+                        Text("Locked - Unlock to make changes")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.orange.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+
                 // Item Header
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -426,9 +512,10 @@ struct ItemClaimCard: View {
                                     onRemoveClaim(claim)
                                 } label: {
                                     Image(systemName: "minus.circle.fill")
-                                        .foregroundStyle(.red)
+                                        .foregroundStyle(isLocked ? .gray.opacity(0.5) : .red)
                                         .font(.title3)
                                 }
+                                .disabled(isLocked)
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
@@ -442,9 +529,10 @@ struct ItemClaimCard: View {
             .background(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+            .opacity(isLocked ? 0.7 : 1.0)
         }
         .buttonStyle(.plain)
-        .disabled(remainingQuantity <= 0)
+        .disabled(remainingQuantity <= 0 || isLocked)
     }
 }
 
