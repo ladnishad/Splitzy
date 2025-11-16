@@ -12,40 +12,84 @@ struct BillDetailView: View {
 
     var body: some View {
         List {
-                // Bill Image Section
+                // Hero Header Section
                 Section {
-                    AsyncImage(url: URL(string: "http://localhost:3000\(bill.imageUrl)")) { image in
-                        image
-                            .resizable()
-                            .scaledToFit()
-                    } placeholder: {
-                        ProgressView()
+                    VStack(spacing: 0) {
+                        // Bill Image
+                        AsyncImage(url: URL(string: "http://localhost:3000\(bill.imageUrl)")) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 200)
+                                .clipped()
+                        } placeholder: {
+                            Rectangle()
+                                .fill(.gray.opacity(0.1))
+                                .frame(height: 200)
+                                .overlay {
+                                    ProgressView()
+                                }
+                        }
+
+                        // Restaurant Name & Total
+                        VStack(spacing: 12) {
+                            // Restaurant Name
+                            Text(bill.restaurant.name)
+                                .font(.system(.title, design: .rounded))
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+
+                            // Restaurant Type Badge
+                            HStack(spacing: 6) {
+                                Image(systemName: bill.restaurant.type == .restaurant ? "fork.knife" : "cup.and.saucer.fill")
+                                    .font(.caption2)
+                                Text(bill.restaurant.type.displayName)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.secondary.opacity(0.1))
+                            .clipShape(Capsule())
+
+                            Divider()
+                                .padding(.vertical, 8)
+
+                            // Total Amount - Hero style
+                            VStack(spacing: 4) {
+                                Text("Total Amount")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .textCase(.uppercase)
+                                    .tracking(1)
+
+                                Text("$\(bill.totalAmount, specifier: "%.2f")")
+                                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.blue)
+                            }
+                            .padding(.bottom, 8)
+
+                            // Status Badge
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(statusColor)
+                                    .frame(width: 8, height: 8)
+                                Text(bill.status.displayName)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundStyle(statusColor)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(statusColor.opacity(0.1))
+                            .clipShape(Capsule())
+                        }
+                        .padding(.vertical, 24)
+                        .padding(.horizontal)
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                     .listRowInsets(EdgeInsets())
-                }
-
-                // Restaurant Info
-                Section("Restaurant Details") {
-                    LabeledContent("Name", value: bill.restaurant.name)
-                    LabeledContent("Type", value: bill.restaurant.type.displayName)
-                    LabeledContent("Status", value: bill.status.displayName)
-                }
-
-                // DEBUG: Show raw assignment mode value
-                Section("Debug Info") {
-                    LabeledContent("Assignment Mode", value: bill.assignmentMode.rawValue)
-                    LabeledContent("Current User ID", value: currentUserId ?? "nil")
-                    if let error = userLoadError {
-                        LabeledContent("User Load Error", value: error)
-                    }
-                    LabeledContent("Is Uploader", value: String(isUploader))
-                    LabeledContent("Uploader ID", value: bill.uploadedBy.id)
-                    LabeledContent("Participants Count", value: String(bill.participants.count))
-                    if let userId = currentUserId {
-                        let isParticipant = bill.participants.contains { $0.id == userId }
-                        LabeledContent("Is Participant", value: String(isParticipant))
-                    }
                 }
 
                 // Assignment Mode
@@ -76,72 +120,117 @@ struct BillDetailView: View {
 
             // Shares - Who owes what
             if !bill.shares.isEmpty {
-                Section("Who Owes What") {
+                Section {
                     ForEach(bill.shares) { share in
-                        HStack {
-                            Image(systemName: "dollarsign.circle.fill")
-                                .foregroundStyle(.green)
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(share.amount > 0 ? Color.blue.gradient : Color.gray.opacity(0.2))
+                                    .frame(width: 44, height: 44)
 
-                            Text(share.participant.name)
-                                .font(.body)
+                                Text(String(share.participant.name.prefix(1)))
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(share.participant.name)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+
+                                if share.participant.id == currentUserId {
+                                    Text("You")
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                } else {
+                                    Text(share.participant.email)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
 
                             Spacer()
 
                             Text("$\(share.amount, specifier: "%.2f")")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(share.amount > 0 ? .blue : .secondary)
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundStyle(share.amount > 0 ? .primary : .secondary)
                         }
+                        .padding(.vertical, 4)
                     }
 
                     if bill.status == .finalized {
                         HStack {
                             Image(systemName: "checkmark.seal.fill")
                                 .foregroundStyle(.green)
-                            Text("Bill finalized")
+                            Text("Bill finalized and ready for payment")
                                 .foregroundStyle(.green)
-                                .font(.caption)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
                         }
+                        .padding(.vertical, 8)
                     }
+                } header: {
+                    Text("Who Owes What")
                 }
             }
 
             // Participants
-            Section("Participants") {
+            Section {
                 ForEach(bill.participants) { participant in
-                    HStack {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundStyle(.blue)
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(participant.id == currentUserId ? Color.blue.gradient : Color.gray.opacity(0.3))
+                                .frame(width: 44, height: 44)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 4) {
+                            Text(String(participant.name.prefix(1)))
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
                                 Text(participant.name)
                                     .font(.body)
+                                    .fontWeight(.medium)
 
                                 // Star icon for uploader
                                 if participant.id == bill.uploadedBy.id {
                                     Image(systemName: "star.fill")
-                                        .font(.caption)
+                                        .font(.caption2)
                                         .foregroundStyle(.yellow)
                                 }
 
                                 // Checkmark icon if participant has finished claiming
                                 if bill.assignmentMode == .selfSelect,
                                    bill.participantsFinished.contains(where: { $0.id == participant.id }) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.caption)
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.caption2)
                                         .foregroundStyle(.green)
                                 }
                             }
 
-                            Text(participant.email)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                if participant.id == currentUserId {
+                                    Text("You")
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                    Text("•")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(participant.email)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
 
                         Spacer()
 
-                        // Show "Claim Items" text for current user in self_select mode
+                        // Show "Claim Items" button for current user in self_select mode
                         if let userId = currentUserId,
                            participant.id == userId,
                            bill.assignmentMode == .selfSelect,
@@ -152,62 +241,103 @@ struct BillDetailView: View {
                                     showClaimView = true
                                 }
                             } label: {
-                                HStack(spacing: 4) {
-                                    Text("Claim Items")
+                                HStack(spacing: 6) {
+                                    Text("Claim")
                                         .font(.subheadline)
-                                        .fontWeight(.medium)
+                                        .fontWeight(.semibold)
                                     Image(systemName: "chevron.right")
-                                        .font(.caption)
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
                                 }
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(.blue.gradient)
+                                .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
                         }
                     }
+                    .padding(.vertical, 4)
                 }
+            } header: {
+                Text("Participants")
             }
+
 
             // Items (if processed)
             if !bill.items.isEmpty {
-                Section("Items") {
+                Section {
                     ForEach(bill.items) { item in
-                        HStack {
-                            VStack(alignment: .leading) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(.blue.opacity(0.1))
+                                    .frame(width: 40, height: 40)
+
+                                Image(systemName: "fork.knife")
+                                    .font(.body)
+                                    .foregroundStyle(.blue)
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
                                 Text(item.name)
                                     .font(.body)
-                                Text("Qty: \(item.quantity)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .fontWeight(.medium)
+
+                                HStack(spacing: 4) {
+                                    Text("\(item.quantity)")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.blue)
+                                    Text("×")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("$\(item.cost, specifier: "%.2f")")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
 
                             Spacer()
 
                             Text("$\(item.cost * Double(item.quantity), specifier: "%.2f")")
                                 .font(.body)
-                                .fontWeight(.medium)
+                                .fontWeight(.semibold)
                         }
+                        .padding(.vertical, 4)
                     }
 
+                    // Total row with emphasis
                     HStack {
                         Text("Total")
                             .font(.headline)
+                            .fontWeight(.bold)
                         Spacer()
                         Text("$\(bill.totalAmount, specifier: "%.2f")")
-                            .font(.headline)
+                            .font(.title3)
+                            .fontWeight(.bold)
                             .foregroundStyle(.blue)
                     }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(.blue.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                } header: {
+                    Text("Items")
                 }
             } else {
                 Section {
                     ContentUnavailableView(
                         "No Items Yet",
-                        systemImage: "list.bullet",
+                        systemImage: "fork.knife.circle",
                         description: Text("Items will appear here once the bill is processed")
                     )
                 }
             }
         }
-        .navigationTitle("Bill Details")
+        .navigationTitle(bill.restaurant.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -250,6 +380,21 @@ struct BillDetailView: View {
     private var isUploader: Bool {
         guard let userId = currentUserId else { return false }
         return bill.uploadedBy.id == userId
+    }
+
+    private var statusColor: Color {
+        switch bill.status {
+        case .pending:
+            return .orange
+        case .processing:
+            return .blue
+        case .processed:
+            return .purple
+        case .finalized:
+            return .green
+        case .failed:
+            return .red
+        }
     }
 
     private func loadCurrentUser() async {
