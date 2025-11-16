@@ -210,44 +210,39 @@ struct BillDetailView: View {
                                 }
                             }
 
-                            HStack(spacing: 4) {
-                                if participant.id == currentUserId {
-                                    Text("You")
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
-                                    Text("•")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(participant.email)
+                            if participant.id == currentUserId {
+                                Text("You")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(.blue)
                             }
                         }
 
                         Spacer()
 
-                        // Show amount if participant has finished claiming, otherwise show claim button
+                        // Show amount or claim button - both tappable for current user
                         if let userId = currentUserId,
                            participant.id == userId,
                            bill.assignmentMode == .selfSelect,
                            bill.status != .finalized {
-                            if bill.participantsFinished.contains(where: { $0.id == participant.id }) {
-                                // Show amount owed
-                                if let share = bill.shares.first(where: { $0.participant.id == participant.id }) {
-                                    Text("$\(share.amount, specifier: "%.2f")")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.blue)
+                            Button {
+                                Task {
+                                    await refreshBill()
+                                    showClaimView = true
                                 }
-                            } else {
-                                // Show claim button
-                                Button {
-                                    Task {
-                                        await refreshBill()
-                                        showClaimView = true
+                            } label: {
+                                if bill.participantsFinished.contains(where: { $0.id == participant.id }) {
+                                    // Show amount with tap hint
+                                    HStack(spacing: 6) {
+                                        Text("$\(bill.shares.first(where: { $0.participant.id == participant.id })?.amount ?? 0, specifier: "%.2f")")
+                                            .font(.title3)
+                                            .fontWeight(.bold)
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
                                     }
-                                } label: {
+                                    .foregroundStyle(.blue)
+                                } else {
+                                    // Show claim button
                                     HStack(spacing: 6) {
                                         Text("Claim")
                                             .font(.subheadline)
@@ -262,10 +257,10 @@ struct BillDetailView: View {
                                     .background(.blue.gradient)
                                     .clipShape(Capsule())
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .buttonStyle(.plain)
                         } else if !bill.shares.isEmpty {
-                            // For other participants, always show their amount
+                            // For other participants, always show their amount (not tappable)
                             if let share = bill.shares.first(where: { $0.participant.id == participant.id }) {
                                 Text("$\(share.amount, specifier: "%.2f")")
                                     .font(.title3)
