@@ -6,6 +6,7 @@ struct BillDetailView: View {
     @State private var isDeleting = false
     @State private var showAssignmentView = false
     @State private var showClaimView = false
+    @State private var showSplitModeInfo = false
     @State private var currentUserId: String?
     @State private var userLoadError: String?
     @Environment(\.dismiss) var dismiss
@@ -70,20 +71,28 @@ struct BillDetailView: View {
                             }
                             .padding(.bottom, 8)
 
-                            // Status Badge
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(statusColor)
-                                    .frame(width: 8, height: 8)
-                                Text(bill.status.displayName)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
+                            // Split Mode Badge with Info
+                            if bill.assignmentMode != .notSet {
+                                Button {
+                                    showSplitModeInfo = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: splitModeIcon)
+                                            .font(.caption2)
+                                        Text(splitModeDisplayName)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                        Image(systemName: "info.circle")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundStyle(splitModeColor)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 6)
+                                    .background(splitModeColor.opacity(0.1))
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .foregroundStyle(statusColor)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
-                            .background(statusColor.opacity(0.1))
-                            .clipShape(Capsule())
                         }
                         .padding(.vertical, 24)
                         .padding(.horizontal)
@@ -91,179 +100,6 @@ struct BillDetailView: View {
                     }
                     .listRowInsets(EdgeInsets())
                 }
-
-                // Assignment Mode
-                if bill.assignmentMode != .notSet {
-                    Section {
-                        HStack {
-                            Text("Split Mode")
-                            Spacer()
-                            Text(bill.assignmentMode.displayName)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        // Show assign button for uploader in uploader_assigns mode
-                        if bill.status != .finalized && bill.assignmentMode == .uploaderAssigns && isUploader {
-                            Button {
-                                Task {
-                                    await refreshBill()
-                                    showAssignmentView = true
-                                }
-                            } label: {
-                                Label("Assign Items", systemImage: "person.badge.plus")
-                            }
-                        }
-                    } header: {
-                        Text("Bill Splitting")
-                    }
-                }
-
-            // Shares - Who owes what
-            if !bill.shares.isEmpty {
-                Section {
-                    ForEach(bill.shares) { share in
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(share.amount > 0 ? AnyShapeStyle(Color.blue.gradient) : AnyShapeStyle(Color.gray.opacity(0.2)))
-                                    .frame(width: 44, height: 44)
-
-                                Text(String(share.participant.name.prefix(1)))
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.white)
-                            }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(share.participant.name)
-                                    .font(.body)
-                                    .fontWeight(.medium)
-
-                                if share.participant.id == currentUserId {
-                                    Text("You")
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
-                                } else {
-                                    Text(share.participant.email)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            Text("$\(share.amount, specifier: "%.2f")")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundStyle(share.amount > 0 ? .primary : .secondary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-
-                    if bill.status == .finalized {
-                        HStack {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundStyle(.green)
-                            Text("Bill finalized and ready for payment")
-                                .foregroundStyle(.green)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                } header: {
-                    Text("Who Owes What")
-                }
-            }
-
-            // Participants
-            Section {
-                ForEach(bill.participants) { participant in
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(participant.id == currentUserId ? AnyShapeStyle(Color.blue.gradient) : AnyShapeStyle(Color.gray.opacity(0.3)))
-                                .frame(width: 44, height: 44)
-
-                            Text(String(participant.name.prefix(1)))
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
-                                Text(participant.name)
-                                    .font(.body)
-                                    .fontWeight(.medium)
-
-                                // Star icon for uploader
-                                if participant.id == bill.uploadedBy.id {
-                                    Image(systemName: "star.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(.yellow)
-                                }
-
-                                // Checkmark icon if participant has finished claiming
-                                if bill.assignmentMode == .selfSelect,
-                                   bill.participantsFinished.contains(where: { $0.id == participant.id }) {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(.green)
-                                }
-                            }
-
-                            HStack(spacing: 4) {
-                                if participant.id == currentUserId {
-                                    Text("You")
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
-                                    Text("•")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(participant.email)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Spacer()
-
-                        // Show "Claim Items" button for current user in self_select mode
-                        if let userId = currentUserId,
-                           participant.id == userId,
-                           bill.assignmentMode == .selfSelect,
-                           bill.status != .finalized {
-                            Button {
-                                Task {
-                                    await refreshBill()
-                                    showClaimView = true
-                                }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Text("Claim")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                }
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(.blue.gradient)
-                                .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            } header: {
-                Text("Participants")
-            }
-
 
             // Items (if processed)
             if !bill.items.isEmpty {
@@ -336,6 +172,167 @@ struct BillDetailView: View {
                     )
                 }
             }
+
+            // Participants with amounts or claim button
+            Section {
+                ForEach(bill.participants) { participant in
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(participant.id == currentUserId ? AnyShapeStyle(Color.blue.gradient) : AnyShapeStyle(Color.gray.opacity(0.3)))
+                                .frame(width: 44, height: 44)
+
+                            Text(String(participant.name.prefix(1)))
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(participant.name)
+                                    .font(.body)
+                                    .fontWeight(.medium)
+
+                                // Star icon for uploader
+                                if participant.id == bill.uploadedBy.id {
+                                    Image(systemName: "star.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(.yellow)
+                                }
+
+                                // Checkmark icon if participant has finished claiming
+                                if bill.assignmentMode == .selfSelect,
+                                   bill.participantsFinished.contains(where: { $0.id == participant.id }) {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+
+                            HStack(spacing: 4) {
+                                if participant.id == currentUserId {
+                                    Text("You")
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                    Text("•")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(participant.email)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        // Show amount if participant has finished claiming, otherwise show claim button
+                        if let userId = currentUserId,
+                           participant.id == userId,
+                           bill.assignmentMode == .selfSelect,
+                           bill.status != .finalized {
+                            if bill.participantsFinished.contains(where: { $0.id == participant.id }) {
+                                // Show amount owed
+                                if let share = bill.shares.first(where: { $0.participant.id == participant.id }) {
+                                    Text("$\(share.amount, specifier: "%.2f")")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(.blue)
+                                }
+                            } else {
+                                // Show claim button
+                                Button {
+                                    Task {
+                                        await refreshBill()
+                                        showClaimView = true
+                                    }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text("Claim")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
+                                    }
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(.blue.gradient)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        } else if !bill.shares.isEmpty {
+                            // For other participants, always show their amount
+                            if let share = bill.shares.first(where: { $0.participant.id == participant.id }) {
+                                Text("$\(share.amount, specifier: "%.2f")")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(share.amount > 0 ? .primary : .secondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                // Add participant button (only for uploader)
+                if isUploader && bill.status != .finalized {
+                    Button {
+                        // TODO: Add participant functionality
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.body)
+                            Text("Add Participant")
+                                .font(.body)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Show assign items button for uploader in uploader_assigns mode
+                if bill.assignmentMode == .uploaderAssigns && isUploader && bill.status != .finalized {
+                    Button {
+                        Task {
+                            await refreshBill()
+                            showAssignmentView = true
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.pencil")
+                                .font(.body)
+                            Text("Assign Items")
+                                .font(.body)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if bill.status == .finalized {
+                    HStack {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.green)
+                        Text("Bill finalized and ready for payment")
+                            .foregroundStyle(.green)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+            } header: {
+                Text("Participants")
+            }
         }
         .navigationTitle(bill.restaurant.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -370,6 +367,11 @@ struct BillDetailView: View {
                 ItemClaimView(bill: $bill, currentUserId: userId)
             }
         }
+        .alert("Split Modes", isPresented: $showSplitModeInfo) {
+            Button("Got it", role: .cancel) { }
+        } message: {
+            Text(splitModeInfoMessage)
+        }
         .task {
             await loadCurrentUser()
             await refreshBill()
@@ -382,19 +384,45 @@ struct BillDetailView: View {
         return bill.uploadedBy.id == userId
     }
 
-    private var statusColor: Color {
-        switch bill.status {
-        case .uploaded:
-            return .orange
-        case .processing:
-            return .blue
-        case .processed:
-            return .purple
-        case .split:
-            return .teal
-        case .finalized:
-            return .green
+    private var splitModeDisplayName: String {
+        switch bill.assignmentMode {
+        case .selfSelect:
+            return "Let'em Pick"
+        case .uploaderAssigns:
+            return "I'll Assign"
+        case .notSet:
+            return "Not Set"
         }
+    }
+
+    private var splitModeIcon: String {
+        switch bill.assignmentMode {
+        case .selfSelect:
+            return "hand.tap.fill"
+        case .uploaderAssigns:
+            return "person.crop.circle.badge.checkmark"
+        case .notSet:
+            return "questionmark.circle"
+        }
+    }
+
+    private var splitModeColor: Color {
+        switch bill.assignmentMode {
+        case .selfSelect:
+            return .purple
+        case .uploaderAssigns:
+            return .blue
+        case .notSet:
+            return .gray
+        }
+    }
+
+    private var splitModeInfoMessage: String {
+        """
+        Let'em Pick: Everyone selects their own items from the bill. Perfect for groups where people know what they ordered.
+
+        I'll Assign: As the bill uploader, you assign items to participants. Best when you want to control the split.
+        """
     }
 
     private func loadCurrentUser() async {
