@@ -125,7 +125,7 @@ struct BillDetailView: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(share.amount > 0 ? Color.blue.gradient : Color.gray.opacity(0.2))
+                                    .fill(share.amount > 0 ? AnyShapeStyle(Color.blue.gradient) : AnyShapeStyle(Color.gray.opacity(0.2)))
                                     .frame(width: 44, height: 44)
 
                                 Text(String(share.participant.name.prefix(1)))
@@ -182,7 +182,7 @@ struct BillDetailView: View {
                     HStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(participant.id == currentUserId ? Color.blue.gradient : Color.gray.opacity(0.3))
+                                .fill(participant.id == currentUserId ? AnyShapeStyle(Color.blue.gradient) : AnyShapeStyle(Color.gray.opacity(0.3)))
                                 .frame(width: 44, height: 44)
 
                             Text(String(participant.name.prefix(1)))
@@ -384,16 +384,16 @@ struct BillDetailView: View {
 
     private var statusColor: Color {
         switch bill.status {
-        case .pending:
+        case .uploaded:
             return .orange
         case .processing:
             return .blue
         case .processed:
             return .purple
+        case .split:
+            return .teal
         case .finalized:
             return .green
-        case .failed:
-            return .red
         }
     }
 

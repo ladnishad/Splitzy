@@ -645,6 +645,7 @@ struct AssignItemSheet: View {
         assignmentMode: .uploaderAssigns,
         itemAssignments: [],
         shares: [],
+        participantsFinished: [],
         restaurant: Restaurant(name: "Test", type: .restaurant),
         createdAt: ""
     )))
