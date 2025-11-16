@@ -7,6 +7,7 @@ struct BillDetailView: View {
     @State private var showAssignmentView = false
     @State private var showClaimView = false
     @State private var currentUserId: String?
+    @State private var userLoadError: String?
     @Environment(\.dismiss) var dismiss
 
     private var showFloatingClaimButton: Bool {
@@ -44,12 +45,17 @@ struct BillDetailView: View {
                 Section("Debug Info") {
                     LabeledContent("Assignment Mode", value: bill.assignmentMode.rawValue)
                     LabeledContent("Current User ID", value: currentUserId ?? "nil")
+                    if let error = userLoadError {
+                        LabeledContent("User Load Error", value: error)
+                    }
                     LabeledContent("Is Uploader", value: String(isUploader))
+                    LabeledContent("Uploader ID", value: bill.uploadedBy.id)
                     LabeledContent("Participants Count", value: String(bill.participants.count))
                     if let userId = currentUserId {
                         let isParticipant = bill.participants.contains { $0.id == userId }
                         LabeledContent("Is Participant", value: String(isParticipant))
                     }
+                    LabeledContent("Show Button", value: String(showFloatingClaimButton))
                 }
 
                 // Assignment Mode
@@ -273,9 +279,41 @@ struct BillDetailView: View {
         do {
             let response = try await APIService.shared.getMe()
             currentUserId = response.data.id
+            userLoadError = nil
         } catch {
-            // Handle error silently
+            userLoadError = error.localizedDescription
+
+            // Workaround: Try to extract user ID from bill data
+            // Check if we're the uploader or in participants list
+            // This works because the bill was already loaded successfully with auth
+            if let token = UserDefaults.standard.string(forKey: "authToken") {
+                // Decode the JWT token to get user ID
+                if let userId = decodeJWTUserId(token: token) {
+                    currentUserId = userId
+                    userLoadError = "Using ID from token (getMe failed: \(error.localizedDescription))"
+                }
+            }
         }
+    }
+
+    private func decodeJWTUserId(token: String) -> String? {
+        let parts = token.split(separator: ".")
+        guard parts.count == 3 else { return nil }
+
+        var payload = String(parts[1])
+        // Add padding if needed
+        let remainder = payload.count % 4
+        if remainder > 0 {
+            payload += String(repeating: "=", count: 4 - remainder)
+        }
+
+        guard let data = Data(base64Encoded: payload),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let userId = json["id"] as? String else {
+            return nil
+        }
+
+        return userId
     }
 
     private func refreshBill() async {
