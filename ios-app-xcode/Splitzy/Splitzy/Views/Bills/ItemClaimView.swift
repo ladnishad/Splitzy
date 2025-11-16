@@ -10,6 +10,7 @@ struct ItemClaimView: View {
     @State private var isClaiming = false
     @State private var errorMessage: String?
     @State private var isProcessing = false
+    @State private var isLocked: Bool = false
 
     var myTotal: Double {
         guard let myShare = bill.shares.first(where: { $0.participant.id == currentUserId }) else {
@@ -52,7 +53,7 @@ struct ItemClaimView: View {
 
                             Spacer()
 
-                            if hasFinishedClaiming {
+                            if isLocked {
                                 // Show unlock button if user has finished
                                 Button {
                                     Task {
@@ -131,6 +132,10 @@ struct ItemClaimView: View {
                 .presentationDetents([.height(380)])
                 .presentationDragIndicator(.visible)
             }
+            .onAppear {
+                // Initialize locked state based on whether user has finished claiming
+                isLocked = hasFinishedClaiming
+            }
         }
     }
 
@@ -195,7 +200,7 @@ struct ItemClaimView: View {
                     item: item,
                     bill: bill,
                     currentUserId: currentUserId,
-                    isLocked: hasFinishedClaiming,
+                    isLocked: isLocked,
                     onClaim: {
                         selectedItem = item
                         quantityToClaim = min(1, getMaxQuantityToClaim(for: item))
@@ -355,6 +360,7 @@ struct ItemClaimView: View {
         do {
             let response = try await APIService.shared.finishClaiming(billId: bill.id)
             bill = response.data
+            isLocked = true  // Explicitly lock the view
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -369,6 +375,7 @@ struct ItemClaimView: View {
         do {
             let response = try await APIService.shared.unlockClaiming(billId: bill.id)
             bill = response.data
+            isLocked = false  // Explicitly unlock the view
         } catch {
             errorMessage = error.localizedDescription
         }
