@@ -468,11 +468,12 @@ struct ClaimItemModal: View {
 
                 Spacer()
 
-                Text("$\(item.cost, specifier: "%.2f")")
+                Text("$\(item.cost, specifier: "%.2f")/item")
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
             }
+            .padding(.top, 8)
 
             Divider()
 
