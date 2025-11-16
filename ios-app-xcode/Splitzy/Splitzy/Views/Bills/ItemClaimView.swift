@@ -77,8 +77,8 @@ struct ItemClaimView: View {
                     }
                 }
             }
-            .sheet(item: $selectedItem) { item in
-                ClaimItemSheet(
+            .popover(item: $selectedItem) { item in
+                ClaimItemPopover(
                     item: item,
                     maxQuantity: getMaxQuantityToClaim(for: item),
                     onClaim: { quantity in
@@ -87,6 +87,7 @@ struct ItemClaimView: View {
                         }
                     }
                 )
+                .presentationCompactAdaptation(.popover)
             }
         }
     }
@@ -446,8 +447,8 @@ struct ItemClaimCard: View {
     }
 }
 
-// Sheet for claiming an item
-struct ClaimItemSheet: View {
+// Compact popover for claiming an item
+struct ClaimItemPopover: View {
     let item: BillItem
     let maxQuantity: Int
     let onClaim: (Int) -> Void
@@ -456,123 +457,100 @@ struct ClaimItemSheet: View {
     @State private var quantity: Int = 1
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Item Info Card
-                        VStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(item.name)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                HStack(spacing: 12) {
-                                    Label("$\(item.cost, specifier: "%.2f") each", systemImage: "dollarsign.circle.fill")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-
-                                    Spacer()
-
-                                    Text("\(maxQuantity) available")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.green)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(.gray.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                        // Quantity Picker
-                        VStack(spacing: 16) {
-                            Text("How many?")
-                                .font(.headline)
-
-                            HStack(spacing: 20) {
-                                Button {
-                                    if quantity > 1 {
-                                        quantity -= 1
-                                    }
-                                } label: {
-                                    Image(systemName: "minus.circle.fill")
-                                        .font(.system(size: 40))
-                                        .foregroundStyle(quantity > 1 ? .blue : .gray)
-                                }
-                                .disabled(quantity <= 1)
-
-                                Text("\(quantity)")
-                                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.blue)
-                                    .frame(minWidth: 70)
-
-                                Button {
-                                    if quantity < maxQuantity {
-                                        quantity += 1
-                                    }
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 40))
-                                        .foregroundStyle(quantity < maxQuantity ? .blue : .gray)
-                                }
-                                .disabled(quantity >= maxQuantity)
-                            }
-
-                            // Total Display
-                            VStack(spacing: 6) {
-                                Text("Your total for this")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-
-                                Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.blue)
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(.blue.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .padding(.vertical)
-                    }
-                    .padding()
-                }
-
-                // Claim Button - Fixed at bottom
-                Button {
-                    onClaim(quantity)
-                    dismiss()
-                } label: {
-                    HStack {
-                        Image(systemName: "hand.raised.fill")
-                        Text("Claim \(quantity) Item\(quantity > 1 ? "s" : "")")
-                    }
+        VStack(spacing: 20) {
+            // Header
+            VStack(spacing: 8) {
+                Text(item.name)
                     .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.blue.gradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .multilineTextAlignment(.center)
+
+                HStack(spacing: 16) {
+                    Label("$\(item.cost, specifier: "%.2f")", systemImage: "dollarsign.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Text("•")
+                        .foregroundStyle(.secondary)
+
+                    Text("\(maxQuantity) available")
+                        .font(.subheadline)
+                        .foregroundStyle(.green)
                 }
-                .disabled(maxQuantity < 1)
-                .padding()
-                .background(.white)
             }
-            .navigationTitle("Claim Item")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+
+            Divider()
+
+            // Quantity Picker
+            VStack(spacing: 12) {
+                Text("Quantity")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 16) {
+                    Button {
+                        if quantity > 1 {
+                            quantity -= 1
+                        }
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(quantity > 1 ? .blue : .gray.opacity(0.3))
                     }
+                    .disabled(quantity <= 1)
+
+                    Text("\(quantity)")
+                        .font(.system(size: 34, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.blue)
+                        .frame(minWidth: 50)
+
+                    Button {
+                        if quantity < maxQuantity {
+                            quantity += 1
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(quantity < maxQuantity ? .blue : .gray.opacity(0.3))
+                    }
+                    .disabled(quantity >= maxQuantity)
                 }
             }
+
+            // Total
+            VStack(spacing: 4) {
+                Text("Total")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text("$\(item.cost * Double(quantity), specifier: "%.2f")")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(.blue)
+            }
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background(.blue.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            // Claim Button
+            Button {
+                onClaim(quantity)
+                dismiss()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "hand.raised.fill")
+                    Text("Claim")
+                }
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.blue.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .disabled(maxQuantity < 1)
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .padding(20)
+        .frame(width: 280)
     }
 }
 
