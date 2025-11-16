@@ -109,33 +109,31 @@ struct BillDetailView: View {
             // Participants
             Section("Participants") {
                 ForEach(bill.participants) { participant in
-                    VStack(spacing: 0) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .foregroundStyle(.blue)
+                    HStack {
+                        Image(systemName: "person.circle.fill")
+                            .foregroundStyle(.blue)
 
-                            VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
                                 Text(participant.name)
                                     .font(.body)
-                                Text(participant.email)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+
+                                // Star icon for uploader
+                                if participant.id == bill.uploadedBy.id {
+                                    Image(systemName: "star.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.yellow)
+                                }
                             }
 
-                            Spacer()
-
-                            if participant.id == bill.uploadedBy.id {
-                                Text("Uploader")
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(.blue.opacity(0.2))
-                                    .foregroundStyle(.blue)
-                                    .clipShape(Capsule())
-                            }
+                            Text(participant.email)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
 
-                        // Show "Claim Items" button for current user in self_select mode
+                        Spacer()
+
+                        // Show "Claim Items" text for current user in self_select mode
                         if let userId = currentUserId,
                            participant.id == userId,
                            bill.assignmentMode == .selfSelect,
@@ -146,23 +144,16 @@ struct BillDetailView: View {
                                     showClaimView = true
                                 }
                             } label: {
-                                HStack {
-                                    Image(systemName: "hand.raised.fill")
+                                HStack(spacing: 4) {
                                     Text("Claim Items")
-                                    Spacer()
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
                                 }
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.white)
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
-                                .background(.blue.gradient)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(.blue)
                             }
                             .buttonStyle(.plain)
-                            .padding(.top, 8)
                         }
                     }
                 }
