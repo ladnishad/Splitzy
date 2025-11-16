@@ -31,6 +31,18 @@ struct BillDetailView: View {
                 LabeledContent("Status", value: bill.status.displayName)
             }
 
+            // DEBUG: Show raw assignment mode value
+            Section("Debug Info") {
+                LabeledContent("Assignment Mode", value: bill.assignmentMode.rawValue)
+                LabeledContent("Current User ID", value: currentUserId ?? "nil")
+                LabeledContent("Is Uploader", value: String(isUploader))
+                LabeledContent("Participants Count", value: String(bill.participants.count))
+                if let userId = currentUserId {
+                    let isParticipant = bill.participants.contains { $0.id == userId }
+                    LabeledContent("Is Participant", value: String(isParticipant))
+                }
+            }
+
             // Assignment Mode & Actions
             if bill.assignmentMode != .notSet {
                 Section {
@@ -206,6 +218,7 @@ struct BillDetailView: View {
         }
         .task {
             await loadCurrentUser()
+            await refreshBill()
         }
         .disabled(isDeleting)
     }
